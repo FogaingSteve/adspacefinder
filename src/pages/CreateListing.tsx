@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
+import { ImageUpload } from "@/components/ImageUpload";
 
 const formSchema = z.object({
   title: z.string().min(5, "Le titre doit contenir au moins 5 caractères"),
@@ -30,7 +31,7 @@ const formSchema = z.object({
   category: z.string().min(1, "Veuillez sélectionner une catégorie"),
   price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Prix invalide"),
   location: z.string().min(3, "La localisation doit contenir au moins 3 caractères"),
-  images: z.array(z.string()).optional(),
+  images: z.array(z.string()).min(1, "Veuillez ajouter au moins une image"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -52,7 +53,6 @@ const CreateListing = () => {
   });
 
   const onSubmit = (data: FormValues) => {
-    // Ici, vous enverriez normalement les données à votre API
     console.log("Données du formulaire:", data);
     toast.success("Annonce publiée avec succès!");
     navigate("/");
@@ -75,6 +75,18 @@ const CreateListing = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                {formData.images && formData.images.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {formData.images.map((image, index) => (
+                      <img
+                        key={index}
+                        src={image}
+                        alt={`Image ${index + 1}`}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    ))}
+                  </div>
+                )}
                 <div>
                   <h3 className="font-semibold mb-2">Description</h3>
                   <p className="text-gray-600">{formData.description}</p>
@@ -100,6 +112,27 @@ const CreateListing = () => {
       ) : (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="images"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Images</FormLabel>
+                  <FormControl>
+                    <ImageUpload
+                      value={field.value}
+                      onChange={(urls) => field.onChange(urls)}
+                      onRemove={(url) => {
+                        const newUrls = field.value.filter((val) => val !== url);
+                        field.onChange(newUrls);
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="title"
