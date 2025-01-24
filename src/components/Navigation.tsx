@@ -22,6 +22,9 @@ export const Navigation = () => {
             <Link to="/categories" className="text-gray-600 hover:text-primary">
               Catégories
             </Link>
+            <Link to="/listings/1" className="text-gray-600 hover:text-primary">
+              Exemple d'annonce
+            </Link>
             <Button asChild variant="outline" className="ml-4">
               <Link to="/auth/signin">Se connecter</Link>
             </Button>
@@ -60,6 +63,13 @@ export const Navigation = () => {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Catégories
+              </Link>
+              <Link
+                to="/listings/1"
+                className="text-gray-600 hover:text-primary"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Exemple d'annonce
               </Link>
               <Button
                 asChild
