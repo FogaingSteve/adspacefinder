@@ -9,7 +9,7 @@ interface ImageUploadProps {
 }
 
 export const ImageUpload = ({
-  value,
+  value = [], // Provide default empty array
   onChange,
   onRemove
 }: ImageUploadProps) => {
@@ -26,14 +26,17 @@ export const ImageUpload = ({
       return URL.createObjectURL(file);
     });
 
-    onChange([...value, ...newImages]);
+    onChange([...(Array.isArray(value) ? value : []), ...newImages]);
     setIsUploading(false);
   };
+
+  // Ensure value is always an array
+  const images = Array.isArray(value) ? value : [];
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {value.map((url) => (
+        {images.map((url) => (
           <div key={url} className="relative group">
             <img
               src={url}

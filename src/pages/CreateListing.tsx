@@ -48,7 +48,7 @@ const CreateListing = () => {
       category: "",
       price: "",
       location: "",
-      images: [],
+      images: [], // Ensure images is initialized as an empty array
     },
   });
 
