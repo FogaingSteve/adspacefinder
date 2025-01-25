@@ -1,81 +1,136 @@
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Home, Car, Briefcase, ShoppingBag, MapPin } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { Footer } from "@/components/Footer";
+import { categories } from "@/data/categories";
 
-const categories = [
-  { name: "Immobilier", icon: Home, color: "bg-blue-100" },
-  { name: "Véhicules", icon: Car, color: "bg-green-100" },
-  { name: "Emploi", icon: Briefcase, color: "bg-yellow-100" },
-  { name: "Shopping", icon: ShoppingBag, color: "bg-purple-100" },
+const cities = ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda", "Kribi"];
+const priceRanges = [
+  "0 - 500,000 CFA",
+  "500,000 - 2,000,000 CFA",
+  "2,000,000 - 10,000,000 CFA",
+  "10,000,000+ CFA",
 ];
 
-const featuredListings = [
-  {
-    id: 1,
-    category: "Véhicules",
-    subcategory: "Voitures",
-    title: "Toyota Fortuner 2018",
-    price: "19 500 000 CFA",
-    location: "Yaoundé, Cameroun",
-    image: "/lovable-uploads/e7fea7e5-02f3-4b4f-8e3b-bdcc57d233ca.png",
-    timePosted: "4 heures",
+const mockListings = {
+  immobilier: {
+    "vente-appartement": [
+      {
+        id: 1,
+        title: "Appartement F4 avec terrasse",
+        price: "45 000 000 CFA",
+        location: "Yaoundé, Cameroun",
+        image: "https://images.unsplash.com/photo-1517022812141-23620dba5c23",
+        timePosted: "2 heures",
+        attributes: {
+          surface: "120 m²",
+          pieces: 4,
+          etage: 3,
+          ascenseur: true,
+        }
+      },
+      {
+        id: 2,
+        title: "Studio meublé centre-ville",
+        price: "15 000 000 CFA",
+        location: "Douala, Cameroun",
+        image: "https://images.unsplash.com/photo-1487958449943-2429e8be8625",
+        timePosted: "5 heures",
+        attributes: {
+          surface: "35 m²",
+          pieces: 1,
+          etage: 2,
+          ascenseur: false,
+        }
+      }
+    ],
+    "location-appartement": [
+      {
+        id: 3,
+        title: "Appartement F3 avec balcon",
+        price: "200 000 CFA/mois",
+        location: "Yaoundé, Cameroun",
+        image: "https://images.unsplash.com/photo-1487958449943-2429e8be8625",
+        timePosted: "1 jour",
+        attributes: {
+          surface: "85 m²",
+          pieces: 3,
+          meuble: true,
+        }
+      }
+    ]
   },
-  {
-    id: 2,
-    category: "Immobilier",
-    subcategory: "Appartements",
-    title: "Bel appartement F3 avec terrasse",
-    price: "250 000 CFA/mois",
-    location: "Douala, Cameroun",
-    image: "https://images.unsplash.com/photo-1721322800607-8c38375eef04",
-    timePosted: "2 heures",
+  vehicules: {
+    voitures: [
+      {
+        id: 4,
+        title: "Toyota Fortuner 2018",
+        price: "19 500 000 CFA",
+        location: "Yaoundé, Cameroun",
+        image: "/lovable-uploads/e7fea7e5-02f3-4b4f-8e3b-bdcc57d233ca.png",
+        timePosted: "4 heures",
+        attributes: {
+          marque: "Toyota",
+          annee: 2018,
+          kilometrage: "45000 km",
+          carburant: "Diesel",
+        }
+      },
+      {
+        id: 5,
+        title: "Peugeot 3008 GT Line",
+        price: "15 000 000 CFA",
+        location: "Douala, Cameroun",
+        image: "https://images.unsplash.com/photo-1493962853295-0fd70327578a",
+        timePosted: "1 jour",
+        attributes: {
+          marque: "Peugeot",
+          annee: 2020,
+          kilometrage: "25000 km",
+          carburant: "Essence",
+        }
+      }
+    ]
   },
-  {
-    id: 3,
-    category: "Emploi",
-    subcategory: "CDI",
-    title: "Développeur Full Stack React/Node.js",
-    price: "Salaire selon profil",
-    location: "Yaoundé, Cameroun",
-    image: "https://images.unsplash.com/photo-1487252665478-49b61b47f302",
-    timePosted: "1 jour",
+  emploi: {
+    "offres-emploi": [
+      {
+        id: 6,
+        title: "Développeur Full Stack React/Node.js",
+        price: "Salaire selon profil",
+        location: "Yaoundé, Cameroun",
+        image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
+        timePosted: "3 heures",
+        attributes: {
+          contrat: "CDI",
+          secteur: "Informatique",
+          experience: "3-5 ans",
+        }
+      }
+    ]
   },
-  {
-    id: 4,
-    category: "Shopping",
-    subcategory: "Mode",
-    title: "iPhone 13 Pro Max - 256Go",
-    price: "450 000 CFA",
-    location: "Douala, Cameroun",
-    image: "https://images.unsplash.com/photo-1493962853295-0fd70327578a",
-    timePosted: "3 heures",
-  },
-  {
-    id: 5,
-    category: "Immobilier",
-    subcategory: "Maisons",
-    title: "Villa moderne avec piscine",
-    price: "180 000 000 CFA",
-    location: "Kribi, Cameroun",
-    image: "https://images.unsplash.com/photo-1517022812141-23620dba5c23",
-    timePosted: "5 heures",
-  },
-  {
-    id: 6,
-    category: "Véhicules",
-    subcategory: "Motos",
-    title: "Yamaha R1 2022",
-    price: "8 500 000 CFA",
-    location: "Yaoundé, Cameroun",
-    image: "https://images.unsplash.com/photo-1466721591366-2d5fba72006d",
-    timePosted: "1 heure",
-  },
-];
+  mode: {
+    vetements: [
+      {
+        id: 7,
+        title: "Costume homme sur mesure",
+        price: "150 000 CFA",
+        location: "Douala, Cameroun",
+        image: "https://images.unsplash.com/photo-1582562124811-c09040d0a901",
+        timePosted: "6 heures",
+        attributes: {
+          taille: "L",
+          etat: "Neuf",
+          marque: "Hugo Boss",
+        }
+      }
+    ]
+  }
+};
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -83,24 +138,83 @@ const Index = () => {
   const [selectedCity, setSelectedCity] = useState("");
   const [priceRange, setPriceRange] = useState("");
 
-  const cities = ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda", "Kribi"];
-  const priceRanges = [
-    "0 - 500,000 CFA",
-    "500,000 - 2,000,000 CFA",
-    "2,000,000 - 10,000,000 CFA",
-    "10,000,000+ CFA",
-  ];
+  const renderListingsByCategory = () => {
+    return Object.entries(mockListings).map(([categoryId, subcategories]) => {
+      const category = categories.find(cat => cat.id === categoryId);
+      if (!category) return null;
 
-  const filteredListings = featuredListings.filter((listing) => {
-    const matchesSearch = listing.title
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesCity = !selectedCity || listing.location.includes(selectedCity);
-    const matchesCategory =
-      !selectedCategory ||
-      listing.category.toLowerCase() === selectedCategory.toLowerCase();
-    return matchesSearch && matchesCity && matchesCategory;
-  });
+      return (
+        <div key={categoryId} className="mb-12">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            {category.name}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {Object.entries(subcategories).map(([subcategoryId, listings]) => (
+              <div key={subcategoryId}>
+                <h3 className="text-lg font-semibold mb-4">
+                  {category.subcategories.find(sub => sub.id === subcategoryId)?.name}
+                </h3>
+                {listings.map((listing) => (
+                  <Link
+                    key={listing.id}
+                    to={`/listings/${listing.id}`}
+                    className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden mb-4 block"
+                  >
+                    <div className="aspect-video relative overflow-hidden">
+                      <img
+                        src={listing.image}
+                        alt={listing.title}
+                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute top-2 right-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="bg-white/80 hover:bg-white rounded-full"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="text-red-500"
+                          >
+                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                          </svg>
+                        </Button>
+                      </div>
+                      <div className="absolute top-2 left-2 bg-white/80 rounded px-2 py-1 text-sm">
+                        {listing.timePosted}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-medium text-lg text-gray-900 group-hover:text-primary">
+                            {listing.title}
+                          </h3>
+                          <p className="text-primary font-bold mt-2">{listing.price}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 mt-2 text-gray-500 text-sm">
+                        <MapPin className="h-4 w-4" />
+                        <span>{listing.location}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -171,85 +285,7 @@ const Index = () => {
 
       {/* Categories Section */}
       <div className="container mx-auto px-4 py-16">
-        <h2 className="text-2xl font-bold mb-8">Catégories populaires</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {categories.map((category) => (
-            <Link
-              key={category.name}
-              to={`/categories/${category.name.toLowerCase()}`}
-              className="group p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow bg-white"
-            >
-              <div className={`${category.color} p-3 rounded-full w-fit mb-4`}>
-                <category.icon className="h-6 w-6 text-gray-700" />
-              </div>
-              <h3 className="font-medium text-gray-900 group-hover:text-primary">
-                {category.name}
-              </h3>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Featured Listings Section */}
-      <div className="container mx-auto px-4 pb-16">
-        <h2 className="text-2xl font-bold mb-8">Annonces à la une</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {filteredListings.map((listing) => (
-            <Link
-              key={listing.id}
-              to={`/listings/${listing.id}`}
-              className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
-            >
-              <div className="aspect-video relative overflow-hidden">
-                <img
-                  src={listing.image}
-                  alt={listing.title}
-                  className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute top-2 right-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white/80 hover:bg-white rounded-full"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-red-500"
-                    >
-                      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                    </svg>
-                  </Button>
-                </div>
-                <div className="absolute top-2 left-2 bg-white/80 rounded px-2 py-1 text-sm">
-                  {listing.timePosted}
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-sm text-gray-500">{listing.subcategory}</span>
-                    <h3 className="font-medium text-lg text-gray-900 group-hover:text-primary">
-                      {listing.title}
-                    </h3>
-                    <p className="text-primary font-bold mt-2">{listing.price}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 mt-2 text-gray-500 text-sm">
-                  <MapPin className="h-4 w-4" />
-                  <span>{listing.location}</span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        {renderListingsByCategory()}
       </div>
 
       <Footer />
