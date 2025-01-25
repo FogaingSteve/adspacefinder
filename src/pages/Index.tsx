@@ -3,14 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Home, Car, Briefcase, ShoppingBag, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Select } from "@/components/ui/select";
-import {
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
+import { Footer } from "@/components/Footer";
 
 const categories = [
   { name: "Immobilier", icon: Home, color: "bg-blue-100" },
@@ -22,6 +17,8 @@ const categories = [
 const featuredListings = [
   {
     id: 1,
+    category: "Véhicules",
+    subcategory: "Voitures",
     title: "Toyota Fortuner 2018",
     price: "19 500 000 CFA",
     location: "Yaoundé, Cameroun",
@@ -30,19 +27,53 @@ const featuredListings = [
   },
   {
     id: 2,
-    title: "Toyota Fortuner 2018",
-    price: "19 500 000 CFA",
-    location: "Yaoundé, Cameroun",
-    image: "/lovable-uploads/e7fea7e5-02f3-4b4f-8e3b-bdcc57d233ca.png",
-    timePosted: "4 heures",
+    category: "Immobilier",
+    subcategory: "Appartements",
+    title: "Bel appartement F3 avec terrasse",
+    price: "250 000 CFA/mois",
+    location: "Douala, Cameroun",
+    image: "https://images.unsplash.com/photo-1721322800607-8c38375eef04",
+    timePosted: "2 heures",
   },
   {
     id: 3,
-    title: "Toyota Fortuner 2018",
-    price: "19 500 000 CFA",
+    category: "Emploi",
+    subcategory: "CDI",
+    title: "Développeur Full Stack React/Node.js",
+    price: "Salaire selon profil",
     location: "Yaoundé, Cameroun",
-    image: "/lovable-uploads/e7fea7e5-02f3-4b4f-8e3b-bdcc57d233ca.png",
-    timePosted: "4 heures",
+    image: "https://images.unsplash.com/photo-1487252665478-49b61b47f302",
+    timePosted: "1 jour",
+  },
+  {
+    id: 4,
+    category: "Shopping",
+    subcategory: "Mode",
+    title: "iPhone 13 Pro Max - 256Go",
+    price: "450 000 CFA",
+    location: "Douala, Cameroun",
+    image: "https://images.unsplash.com/photo-1493962853295-0fd70327578a",
+    timePosted: "3 heures",
+  },
+  {
+    id: 5,
+    category: "Immobilier",
+    subcategory: "Maisons",
+    title: "Villa moderne avec piscine",
+    price: "180 000 000 CFA",
+    location: "Kribi, Cameroun",
+    image: "https://images.unsplash.com/photo-1517022812141-23620dba5c23",
+    timePosted: "5 heures",
+  },
+  {
+    id: 6,
+    category: "Véhicules",
+    subcategory: "Motos",
+    title: "Yamaha R1 2022",
+    price: "8 500 000 CFA",
+    location: "Yaoundé, Cameroun",
+    image: "https://images.unsplash.com/photo-1466721591366-2d5fba72006d",
+    timePosted: "1 heure",
   },
 ];
 
@@ -52,7 +83,7 @@ const Index = () => {
   const [selectedCity, setSelectedCity] = useState("");
   const [priceRange, setPriceRange] = useState("");
 
-  const cities = ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda"];
+  const cities = ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda", "Kribi"];
   const priceRanges = [
     "0 - 500,000 CFA",
     "500,000 - 2,000,000 CFA",
@@ -67,8 +98,7 @@ const Index = () => {
     const matchesCity = !selectedCity || listing.location.includes(selectedCity);
     const matchesCategory =
       !selectedCategory ||
-      listing.title.toLowerCase().includes(selectedCategory.toLowerCase());
-    // Note: Price range filtering would need to be implemented with actual number comparisons
+      listing.category.toLowerCase() === selectedCategory.toLowerCase();
     return matchesSearch && matchesCity && matchesCategory;
   });
 
@@ -205,6 +235,7 @@ const Index = () => {
               <div className="p-4">
                 <div className="flex justify-between items-start">
                   <div>
+                    <span className="text-sm text-gray-500">{listing.subcategory}</span>
                     <h3 className="font-medium text-lg text-gray-900 group-hover:text-primary">
                       {listing.title}
                     </h3>
@@ -220,6 +251,8 @@ const Index = () => {
           ))}
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 };
