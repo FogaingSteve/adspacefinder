@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState } from "react";
 import { Footer } from "@/components/Footer";
 import { categories } from "@/data/categories";
+import { RecentListings } from "@/components/RecentListings";
 
 const cities = ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda", "Kribi"];
 const priceRanges = [
@@ -281,6 +282,11 @@ const Index = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Recent Listings Section */}
+      <div className="container mx-auto px-4">
+        <RecentListings />
       </div>
 
       {/* Categories Section */}
