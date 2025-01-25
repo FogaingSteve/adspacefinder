@@ -1,8 +1,16 @@
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Home, Car, Briefcase, ShoppingBag } from "lucide-react";
+import { Search, Home, Car, Briefcase, ShoppingBag, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Select } from "@/components/ui/select";
+import {
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useState } from "react";
 
 const categories = [
   { name: "Immobilier", icon: Home, color: "bg-blue-100" },
@@ -14,28 +22,56 @@ const categories = [
 const featuredListings = [
   {
     id: 1,
-    title: "Appartement 3 pièces",
-    price: "250,000 €",
-    location: "Paris",
-    image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=80",
+    title: "Toyota Fortuner 2018",
+    price: "19 500 000 CFA",
+    location: "Yaoundé, Cameroun",
+    image: "/lovable-uploads/e7fea7e5-02f3-4b4f-8e3b-bdcc57d233ca.png",
+    timePosted: "4 heures",
   },
   {
     id: 2,
-    title: "Voiture d'occasion",
-    price: "15,000 €",
-    location: "Lyon",
-    image: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=500&q=80",
+    title: "Toyota Fortuner 2018",
+    price: "19 500 000 CFA",
+    location: "Yaoundé, Cameroun",
+    image: "/lovable-uploads/e7fea7e5-02f3-4b4f-8e3b-bdcc57d233ca.png",
+    timePosted: "4 heures",
   },
   {
     id: 3,
-    title: "iPhone 13 Pro",
-    price: "800 €",
-    location: "Marseille",
-    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&q=80",
+    title: "Toyota Fortuner 2018",
+    price: "19 500 000 CFA",
+    location: "Yaoundé, Cameroun",
+    image: "/lovable-uploads/e7fea7e5-02f3-4b4f-8e3b-bdcc57d233ca.png",
+    timePosted: "4 heures",
   },
 ];
 
 const Index = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [priceRange, setPriceRange] = useState("");
+
+  const cities = ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda"];
+  const priceRanges = [
+    "0 - 500,000 CFA",
+    "500,000 - 2,000,000 CFA",
+    "2,000,000 - 10,000,000 CFA",
+    "10,000,000+ CFA",
+  ];
+
+  const filteredListings = featuredListings.filter((listing) => {
+    const matchesSearch = listing.title
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesCity = !selectedCity || listing.location.includes(selectedCity);
+    const matchesCategory =
+      !selectedCategory ||
+      listing.title.toLowerCase().includes(selectedCategory.toLowerCase());
+    // Note: Price range filtering would need to be implemented with actual number comparisons
+    return matchesSearch && matchesCity && matchesCategory;
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
@@ -49,14 +85,56 @@ const Index = () => {
           <p className="text-lg text-white/90 mb-8">
             Des milliers d'annonces à portée de main
           </p>
-          <div className="max-w-2xl mx-auto flex gap-2">
-            <Input
-              placeholder="Que recherchez-vous ?"
-              className="bg-white"
-            />
-            <Button className="bg-white text-primary hover:bg-gray-100">
-              <Search className="h-4 w-4" />
-            </Button>
+          <div className="max-w-4xl mx-auto space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Que recherchez-vous ?"
+                className="bg-white"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Button className="bg-white text-primary hover:bg-gray-100">
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex gap-2 flex-wrap md:flex-nowrap">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="Catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.name} value={cat.name.toLowerCase()}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedCity} onValueChange={setSelectedCity}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="Ville" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map((city) => (
+                    <SelectItem key={city} value={city}>
+                      {city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={priceRange} onValueChange={setPriceRange}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="Fourchette de prix" />
+                </SelectTrigger>
+                <SelectContent>
+                  {priceRanges.map((range) => (
+                    <SelectItem key={range} value={range}>
+                      {range}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
@@ -86,7 +164,7 @@ const Index = () => {
       <div className="container mx-auto px-4 pb-16">
         <h2 className="text-2xl font-bold mb-8">Annonces à la une</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {featuredListings.map((listing) => (
+          {filteredListings.map((listing) => (
             <Link
               key={listing.id}
               to={`/listings/${listing.id}`}
@@ -98,13 +176,45 @@ const Index = () => {
                   alt={listing.title}
                   className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                 />
+                <div className="absolute top-2 right-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="bg-white/80 hover:bg-white rounded-full"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-red-500"
+                    >
+                      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                    </svg>
+                  </Button>
+                </div>
+                <div className="absolute top-2 left-2 bg-white/80 rounded px-2 py-1 text-sm">
+                  {listing.timePosted}
+                </div>
               </div>
               <div className="p-4">
-                <h3 className="font-medium text-lg text-gray-900 group-hover:text-primary">
-                  {listing.title}
-                </h3>
-                <p className="text-primary font-bold mt-2">{listing.price}</p>
-                <p className="text-gray-500 text-sm mt-1">{listing.location}</p>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium text-lg text-gray-900 group-hover:text-primary">
+                      {listing.title}
+                    </h3>
+                    <p className="text-primary font-bold mt-2">{listing.price}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 mt-2 text-gray-500 text-sm">
+                  <MapPin className="h-4 w-4" />
+                  <span>{listing.location}</span>
+                </div>
               </div>
             </Link>
           ))}
