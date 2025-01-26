@@ -28,7 +28,7 @@ const topCategories = [
   { icon: Handshake, name: "Services", link: "/categories/services" },
   { icon: Baby, name: "Pour l'enfant", link: "/categories/enfant" },
   { icon: Trophy, name: "Sports & Loisirs", link: "/categories/sports" },
-};
+];
 
 // Mock data for listings
 const mockListings = {
@@ -41,8 +41,7 @@ const mockListings = {
         location: "Yaoundé, Bastos",
         image: "/placeholder.svg",
         timePosted: "Il y a 2 heures"
-      },
-      // ... Add more listings as needed
+      }
     ],
     "location-appartement": [
       {
@@ -257,3 +256,4 @@ const Index = () => {
 };
 
 export default Index;
+
