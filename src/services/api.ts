@@ -1,8 +1,8 @@
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { supabase } from "@/lib/supabase";
 
-// Cette URL devra être remplacée par l'URL de votre API Node.js une fois déployée
-const API_URL = "http://localhost:3000/api";
+// L'URL de notre API Node.js
+const API_URL = "http://localhost:5000/api";
 
 export const listingService = {
   async createListing(listing: CreateListingDTO): Promise<Listing> {
@@ -13,20 +13,35 @@ export const listingService = {
     }
 
     try {
+      // Créer un FormData pour envoyer les images
+      const formData = new FormData();
+      
+      // Ajouter les données de l'annonce
+      formData.append('title', listing.title);
+      formData.append('description', listing.description);
+      formData.append('price', listing.price.toString());
+      formData.append('category', listing.category);
+      formData.append('location', listing.location);
+      formData.append('userId', user.id);
+
+      // Ajouter les images
+      if (listing.images && listing.images.length > 0) {
+        listing.images.forEach((image, index) => {
+          formData.append('images', image);
+        });
+      }
+
       const response = await fetch(`${API_URL}/listings`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${user.id}` // À adapter selon votre système d'auth
+          "Authorization": `Bearer ${user.id}`
         },
-        body: JSON.stringify({
-          ...listing,
-          userId: user.id
-        })
+        body: formData
       });
 
       if (!response.ok) {
-        throw new Error("Erreur lors de la création de l'annonce");
+        const error = await response.json();
+        throw new Error(error.message || "Erreur lors de la création de l'annonce");
       }
 
       return response.json();
