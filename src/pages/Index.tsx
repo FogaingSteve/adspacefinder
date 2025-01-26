@@ -1,7 +1,7 @@
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, Car, Smartphone, Shirt, Home, Microwave, Armchair, Briefcase, Handshake, Baby, Football } from "lucide-react";
+import { Search, MapPin, Car, Smartphone, Shirt, Home, Microwave, Armchair, Briefcase, Handshake, Baby, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
@@ -27,8 +27,47 @@ const topCategories = [
   { icon: Briefcase, name: "Emplois", link: "/categories/emplois" },
   { icon: Handshake, name: "Services", link: "/categories/services" },
   { icon: Baby, name: "Pour l'enfant", link: "/categories/enfant" },
-  { icon: Football, name: "Sports & Loisirs", link: "/categories/sports" },
-];
+  { icon: Trophy, name: "Sports & Loisirs", link: "/categories/sports" },
+};
+
+// Mock data for listings
+const mockListings = {
+  immobilier: {
+    "vente-appartement": [
+      {
+        id: "1",
+        title: "Bel appartement avec vue",
+        price: "45,000,000 CFA",
+        location: "Yaoundé, Bastos",
+        image: "/placeholder.svg",
+        timePosted: "Il y a 2 heures"
+      },
+      // ... Add more listings as needed
+    ],
+    "location-appartement": [
+      {
+        id: "2",
+        title: "Studio meublé",
+        price: "150,000 CFA/mois",
+        location: "Douala, Bonanjo",
+        image: "/placeholder.svg",
+        timePosted: "Il y a 1 jour"
+      }
+    ]
+  },
+  vehicules: {
+    "voitures": [
+      {
+        id: "3",
+        title: "Toyota Corolla 2019",
+        price: "8,500,000 CFA",
+        location: "Yaoundé",
+        image: "/placeholder.svg",
+        timePosted: "Il y a 3 heures"
+      }
+    ]
+  }
+};
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
