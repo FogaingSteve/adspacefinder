@@ -3,20 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { Github, Facebook } from "lucide-react";
+import { Mail } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function SignUp() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const { signUp, signInWithGoogle } = useAuth();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement sign up
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate("/dashboard");
-    }, 1000);
+    await signUp(email, password);
+    setIsLoading(false);
   };
 
   return (
@@ -48,37 +49,16 @@ export default function SignUp() {
           <form onSubmit={handleSignUp}>
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Nom complet</Label>
-                <Input
-                  id="name"
-                  placeholder="John Doe"
-                  type="text"
-                  autoCapitalize="none"
-                  autoComplete="name"
-                  autoCorrect="off"
-                  disabled={isLoading}
-                />
-              </div>
-              <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   placeholder="nom@exemple.com"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   autoCapitalize="none"
                   autoComplete="email"
                   autoCorrect="off"
-                  disabled={isLoading}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="phone">Téléphone</Label>
-                <Input
-                  id="phone"
-                  placeholder="+33 6 12 34 56 78"
-                  type="tel"
-                  autoCapitalize="none"
-                  autoComplete="tel"
                   disabled={isLoading}
                 />
               </div>
@@ -87,6 +67,8 @@ export default function SignUp() {
                 <Input
                   id="password"
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
                 />
               </div>
@@ -108,13 +90,14 @@ export default function SignUp() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" disabled={isLoading}>
-              <Github className="mr-2 h-4 w-4" />
-              Github
-            </Button>
-            <Button variant="outline" disabled={isLoading}>
-              <Facebook className="mr-2 h-4 w-4" />
-              Facebook
+            <Button 
+              variant="outline" 
+              onClick={() => signInWithGoogle()}
+              disabled={isLoading}
+              className="w-full"
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              Google
             </Button>
           </div>
 

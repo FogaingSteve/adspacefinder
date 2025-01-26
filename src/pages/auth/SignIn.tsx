@@ -5,19 +5,30 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mail, Phone, Github, Facebook } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function SignIn() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const { signIn, signInWithGoogle, resetPassword } = useAuth();
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement email sign in
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate("/dashboard");
-    }, 1000);
+    await signIn(email, password);
+    setIsLoading(false);
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      return;
+    }
+    setIsLoading(true);
+    await resetPassword(email);
+    setIsLoading(false);
   };
 
   return (
@@ -60,6 +71,8 @@ export default function SignIn() {
                       id="email"
                       placeholder="nom@exemple.com"
                       type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       autoCapitalize="none"
                       autoComplete="email"
                       autoCorrect="off"
@@ -71,9 +84,20 @@ export default function SignIn() {
                     <Input
                       id="password"
                       type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       disabled={isLoading}
                     />
                   </div>
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="px-0 text-left text-sm"
+                    onClick={handleResetPassword}
+                    disabled={isLoading}
+                  >
+                    Mot de passe oublié ?
+                  </Button>
                   <Button disabled={isLoading}>
                     {isLoading ? "Connexion..." : "Se connecter"}
                   </Button>
@@ -81,7 +105,7 @@ export default function SignIn() {
               </form>
             </TabsContent>
             <TabsContent value="phone">
-              <form onSubmit={handleEmailSignIn}>
+              <form onSubmit={(e) => e.preventDefault()}>
                 <div className="grid gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="phone">Numéro de téléphone</Label>
@@ -114,13 +138,13 @@ export default function SignIn() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" disabled={isLoading}>
-              <Github className="mr-2 h-4 w-4" />
-              Github
-            </Button>
-            <Button variant="outline" disabled={isLoading}>
-              <Facebook className="mr-2 h-4 w-4" />
-              Facebook
+            <Button 
+              variant="outline" 
+              onClick={() => signInWithGoogle()}
+              disabled={isLoading}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              Google
             </Button>
           </div>
 
