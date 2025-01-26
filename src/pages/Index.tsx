@@ -1,7 +1,7 @@
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin } from "lucide-react";
+import { Search, MapPin, Car, Smartphone, Shirt, Home, Microwave, Armchair, Briefcase, Handshake, Baby, Football } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
@@ -17,121 +17,18 @@ const priceRanges = [
   "10,000,000+ CFA",
 ];
 
-const mockListings = {
-  immobilier: {
-    "vente-appartement": [
-      {
-        id: 1,
-        title: "Appartement F4 avec terrasse",
-        price: "45 000 000 CFA",
-        location: "Yaoundé, Cameroun",
-        image: "https://images.unsplash.com/photo-1517022812141-23620dba5c23",
-        timePosted: "2 heures",
-        attributes: {
-          surface: "120 m²",
-          pieces: 4,
-          etage: 3,
-          ascenseur: true,
-        }
-      },
-      {
-        id: 2,
-        title: "Studio meublé centre-ville",
-        price: "15 000 000 CFA",
-        location: "Douala, Cameroun",
-        image: "https://images.unsplash.com/photo-1487958449943-2429e8be8625",
-        timePosted: "5 heures",
-        attributes: {
-          surface: "35 m²",
-          pieces: 1,
-          etage: 2,
-          ascenseur: false,
-        }
-      }
-    ],
-    "location-appartement": [
-      {
-        id: 3,
-        title: "Appartement F3 avec balcon",
-        price: "200 000 CFA/mois",
-        location: "Yaoundé, Cameroun",
-        image: "https://images.unsplash.com/photo-1487958449943-2429e8be8625",
-        timePosted: "1 jour",
-        attributes: {
-          surface: "85 m²",
-          pieces: 3,
-          meuble: true,
-        }
-      }
-    ]
-  },
-  vehicules: {
-    voitures: [
-      {
-        id: 4,
-        title: "Toyota Fortuner 2018",
-        price: "19 500 000 CFA",
-        location: "Yaoundé, Cameroun",
-        image: "/lovable-uploads/e7fea7e5-02f3-4b4f-8e3b-bdcc57d233ca.png",
-        timePosted: "4 heures",
-        attributes: {
-          marque: "Toyota",
-          annee: 2018,
-          kilometrage: "45000 km",
-          carburant: "Diesel",
-        }
-      },
-      {
-        id: 5,
-        title: "Peugeot 3008 GT Line",
-        price: "15 000 000 CFA",
-        location: "Douala, Cameroun",
-        image: "https://images.unsplash.com/photo-1493962853295-0fd70327578a",
-        timePosted: "1 jour",
-        attributes: {
-          marque: "Peugeot",
-          annee: 2020,
-          kilometrage: "25000 km",
-          carburant: "Essence",
-        }
-      }
-    ]
-  },
-  emploi: {
-    "offres-emploi": [
-      {
-        id: 6,
-        title: "Développeur Full Stack React/Node.js",
-        price: "Salaire selon profil",
-        location: "Yaoundé, Cameroun",
-        image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
-        timePosted: "3 heures",
-        attributes: {
-          contrat: "CDI",
-          secteur: "Informatique",
-          experience: "3-5 ans",
-        }
-      }
-    ]
-  },
-  mode: {
-    vetements: [
-      {
-        id: 7,
-        title: "Costume homme sur mesure",
-        price: "150 000 CFA",
-        location: "Douala, Cameroun",
-        image: "https://images.unsplash.com/photo-1582562124811-c09040d0a901",
-        timePosted: "6 heures",
-        attributes: {
-          taille: "L",
-          etat: "Neuf",
-          marque: "Hugo Boss",
-        }
-      }
-    ]
-  }
-};
+const topCategories = [
+  { icon: Car, name: "Véhicules", link: "/categories/vehicules" },
+  { icon: Smartphone, name: "Electronique", link: "/categories/electronique" },
+  { icon: Shirt, name: "Mode & Beauté", link: "/categories/mode" },
+  { icon: Home, name: "Immobilier", link: "/categories/immobilier" },
+  { icon: Microwave, name: "Electroménager", link: "/categories/electromenager" },
+  { icon: Armchair, name: "Pour la maison", link: "/categories/maison" },
+  { icon: Briefcase, name: "Emplois", link: "/categories/emplois" },
+  { icon: Handshake, name: "Services", link: "/categories/services" },
+  { icon: Baby, name: "Pour l'enfant", link: "/categories/enfant" },
+  { icon: Football, name: "Sports & Loisirs", link: "/categories/sports" },
+];
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -285,6 +182,23 @@ const Index = () => {
               </Select>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Top Categories Section */}
+      <div className="container mx-auto px-4 py-12">
+        <h2 className="text-2xl font-bold mb-8 text-center">Top Catégories</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-4">
+          {topCategories.map((category) => (
+            <Link
+              key={category.name}
+              to={category.link}
+              className="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
+              <category.icon className="h-8 w-8 mb-2 text-primary" />
+              <span className="text-sm text-center">{category.name}</span>
+            </Link>
+          ))}
         </div>
       </div>
 
