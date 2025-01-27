@@ -1,10 +1,35 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Bell, Heart, MessageSquare, User, Plus } from "lucide-react";
+import { Menu, X, Bell, Heart, MessageSquare, User, Plus, Settings, LayoutDashboard, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    setShowLogoutDialog(false);
+  };
 
   return (
     <nav className="bg-white shadow-sm">
@@ -52,10 +77,50 @@ export const Navigation = () => {
               <MessageSquare className="h-6 w-6" />
               <span className="text-xs">Messages</span>
             </Link>
-            <Link to="/auth/signin" className="flex flex-col items-center text-gray-600 hover:text-[#FF6E14]">
-              <User className="h-6 w-6" />
-              <span className="text-xs">Se connecter</span>
-            </Link>
+            
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex flex-col items-center text-gray-600 hover:text-[#FF6E14]">
+                    <User className="h-6 w-6" />
+                    <span className="text-xs">{user.email?.split('@')[0]}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end">
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profil</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard" className="flex items-center">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      <span>Tableau de bord</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings" className="flex items-center">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Paramètres</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => setShowLogoutDialog(true)}
+                    className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Déconnexion</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/auth/signin" className="flex flex-col items-center text-gray-600 hover:text-[#FF6E14]">
+                <User className="h-6 w-6" />
+                <span className="text-xs">Se connecter</span>
+              </Link>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -134,18 +199,72 @@ export const Navigation = () => {
               >
                 Déposer une annonce
               </Link>
-              <Button
-                asChild
-                variant="outline"
-                className="w-full"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <Link to="/auth/signin">Se connecter</Link>
-              </Button>
+              {user ? (
+                <>
+                  <Link
+                    to="/profile"
+                    className="text-gray-600 hover:text-[#FF6E14]"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Profil
+                  </Link>
+                  <Link
+                    to="/dashboard"
+                    className="text-gray-600 hover:text-[#FF6E14]"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Tableau de bord
+                  </Link>
+                  <Link
+                    to="/settings"
+                    className="text-gray-600 hover:text-[#FF6E14]"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Paramètres
+                  </Link>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setShowLogoutDialog(true);
+                    }}
+                  >
+                    Déconnexion
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Link to="/auth/signin">Se connecter</Link>
+                </Button>
+              )}
             </div>
           </div>
         )}
       </div>
+
+      {/* Logout confirmation dialog */}
+      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la déconnexion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir vous déconnecter ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout}>
+              Déconnexion
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </nav>
   );
 };
