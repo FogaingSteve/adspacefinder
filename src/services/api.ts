@@ -2,7 +2,7 @@ import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
 
-const API_URL = 'http://localhost:5000/api'; // L'URL de notre API Node.js
+const API_URL = 'http://localhost:5000/api';
 
 export const listingService = {
   async createListing(listing: CreateListingDTO): Promise<Listing> {
@@ -22,6 +22,18 @@ export const listingService = {
     } catch (error) {
       console.error("Erreur récupération annonces récentes:", error);
       throw new Error("Erreur lors de la récupération des annonces récentes");
+    }
+  },
+
+  async searchListings(query: string): Promise<Listing[]> {
+    try {
+      const response = await axios.get(`${API_URL}/listings/search`, {
+        params: { q: query }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Erreur recherche annonces:", error);
+      throw new Error("Erreur lors de la recherche d'annonces");
     }
   },
 

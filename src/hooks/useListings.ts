@@ -25,6 +25,14 @@ export const useRecentListings = () => {
   });
 };
 
+export const useSearchListings = (query: string) => {
+  return useQuery({
+    queryKey: ['searchListings', query],
+    queryFn: () => listingService.searchListings(query),
+    enabled: !!query,
+  });
+};
+
 export const useUploadImages = () => {
   return useMutation({
     mutationFn: (files: File[]) => listingService.uploadImages(files),
@@ -42,6 +50,7 @@ export const useToggleFavorite = () => {
       listingService.toggleFavorite(listingId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      queryClient.invalidateQueries({ queryKey: ['recentListings'] });
     }
   });
 };
