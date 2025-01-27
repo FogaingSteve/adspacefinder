@@ -3,28 +3,71 @@ import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
-const AuthContext = createContext<{
-  user: any;
+interface User {
+  id: string;
+  email: string;
+  user_metadata?: {
+    name?: string;
+    avatar_url?: string;
+  };
+}
+
+interface AuthContextType {
+  user: User | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-} | null>(null)
+  updateProfile: (data: { name?: string; avatar_url?: string }) => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null)
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Check active sessions and sets the user
+    // Récupérer la session depuis le localStorage au chargement
+    const savedSession = localStorage.getItem('userSession')
+    if (savedSession) {
+      try {
+        const parsedSession = JSON.parse(savedSession)
+        setUser(parsedSession)
+      } catch (error) {
+        console.error('Error parsing saved session:', error)
+        localStorage.removeItem('userSession')
+      }
+    }
+
+    // Vérifier la session active
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
+      if (session?.user) {
+        const userData: User = {
+          id: session.user.id,
+          email: session.user.email!,
+          user_metadata: session.user.user_metadata
+        }
+        setUser(userData)
+        localStorage.setItem('userSession', JSON.stringify(userData))
+      }
     })
 
-    // Listen for changes on auth state (signed in, signed out, etc.)
+    // Écouter les changements d'état d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      if (session?.user) {
+        const userData: User = {
+          id: session.user.id,
+          email: session.user.email!,
+          user_metadata: session.user.user_metadata
+        }
+        setUser(userData)
+        localStorage.setItem('userSession', JSON.stringify(userData))
+      } else {
+        setUser(null)
+        localStorage.removeItem('userSession')
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -78,6 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
+      localStorage.removeItem('userSession')
       toast.success('Déconnexion réussie')
       navigate('/')
     } catch (error: any) {
@@ -97,8 +141,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
+  const updateProfile = async (data: { name?: string; avatar_url?: string }) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: data
+      })
+      if (error) throw error
+      
+      if (user) {
+        const updatedUser = {
+          ...user,
+          user_metadata: {
+            ...user.user_metadata,
+            ...data
+          }
+        }
+        setUser(updatedUser)
+        localStorage.setItem('userSession', JSON.stringify(updatedUser))
+      }
+      
+      toast.success('Profil mis à jour avec succès')
+    } catch (error: any) {
+      toast.error(error.message)
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, signIn, signUp, signInWithGoogle, signOut, resetPassword }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      signIn, 
+      signUp, 
+      signInWithGoogle, 
+      signOut, 
+      resetPassword,
+      updateProfile 
+    }}>
       {children}
     </AuthContext.Provider>
   )
