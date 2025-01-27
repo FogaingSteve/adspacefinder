@@ -1,83 +1,65 @@
+import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
-import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
-// L'URL de notre API Node.js
-const API_URL = "http://localhost:5000/api";
+const API_URL = 'http://localhost:5000/api'; // L'URL de notre API Node.js
 
 export const listingService = {
   async createListing(listing: CreateListingDTO): Promise<Listing> {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("Vous devez être connecté pour créer une annonce");
-    }
-
     try {
-      // Créer un FormData pour envoyer les images
-      const formData = new FormData();
-      
-      // Ajouter les données de l'annonce
-      formData.append('title', listing.title);
-      formData.append('description', listing.description);
-      formData.append('price', listing.price.toString());
-      formData.append('category', listing.category);
-      formData.append('location', listing.location);
-      formData.append('userId', user.id);
-
-      // Ajouter les images
-      if (listing.images && listing.images.length > 0) {
-        listing.images.forEach((image, index) => {
-          formData.append('images', image);
-        });
-      }
-
-      const response = await fetch(`${API_URL}/listings`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${user.id}`
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erreur lors de la création de l'annonce");
-      }
-
-      return response.json();
+      const response = await axios.post(`${API_URL}/listings`, listing);
+      return response.data;
     } catch (error) {
       console.error("Erreur création annonce:", error);
-      throw error;
+      throw new Error("Erreur lors de la création de l'annonce");
+    }
+  },
+
+  async getRecentListings(): Promise<Listing[]> {
+    try {
+      const response = await axios.get(`${API_URL}/listings/recent`);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur récupération annonces récentes:", error);
+      throw new Error("Erreur lors de la récupération des annonces récentes");
     }
   },
 
   async uploadImages(files: File[]): Promise<string[]> {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("Vous devez être connecté pour uploader des images");
-    }
-
     try {
       const formData = new FormData();
-      files.forEach(file => formData.append("images", file));
+      files.forEach(file => formData.append('images', file));
 
-      const response = await fetch(`${API_URL}/listings/upload`, {
-        method: "POST",
+      const response = await axios.post(`${API_URL}/listings/upload`, formData, {
         headers: {
-          "Authorization": `Bearer ${user.id}`
+          'Content-Type': 'multipart/form-data',
         },
-        body: formData
       });
 
-      if (!response.ok) {
-        throw new Error("Erreur lors de l'upload des images");
-      }
-
-      return response.json();
+      return response.data.urls;
     } catch (error) {
       console.error("Erreur upload images:", error);
-      throw error;
+      throw new Error("Erreur lors de l'upload des images");
+    }
+  },
+
+  async toggleFavorite(listingId: string, userId: string): Promise<void> {
+    try {
+      await axios.post(`${API_URL}/listings/${listingId}/favorite`, { userId });
+      toast.success("Statut des favoris mis à jour");
+    } catch (error) {
+      console.error("Erreur mise à jour favoris:", error);
+      throw new Error("Erreur lors de la mise à jour des favoris");
+    }
+  },
+
+  async getFavorites(userId: string): Promise<string[]> {
+    try {
+      const response = await axios.get(`${API_URL}/users/${userId}/favorites`);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur récupération favoris:", error);
+      throw new Error("Erreur lors de la récupération des favoris");
     }
   }
 };
