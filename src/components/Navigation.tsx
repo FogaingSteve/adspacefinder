@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Bell, Heart, MessageSquare, User, Plus, Settings, LayoutDashboard, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { categories } from "@/data/categories";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -139,32 +140,30 @@ export const Navigation = () => {
           </div>
         </div>
 
-        {/* Categories bar */}
-        <div className="hidden md:flex items-center space-x-6 py-2 text-sm">
-          <Link to="/categories/immobilier" className="text-gray-600 hover:text-[#FF6E14]">
-            Immobilier
-          </Link>
-          <Link to="/categories/vehicules" className="text-gray-600 hover:text-[#FF6E14]">
-            Véhicules
-          </Link>
-          <Link to="/categories/locations" className="text-gray-600 hover:text-[#FF6E14]">
-            Locations de vacances
-          </Link>
-          <Link to="/categories/emploi" className="text-gray-600 hover:text-[#FF6E14]">
-            Emploi
-          </Link>
-          <Link to="/categories/mode" className="text-gray-600 hover:text-[#FF6E14]">
-            Mode
-          </Link>
-          <Link to="/categories/maison" className="text-gray-600 hover:text-[#FF6E14]">
-            Maison & Jardin
-          </Link>
-          <Link to="/categories/multimedia" className="text-gray-600 hover:text-[#FF6E14]">
-            Multimédia
-          </Link>
-          <Link to="/categories/loisirs" className="text-gray-600 hover:text-[#FF6E14]">
-            Loisirs
-          </Link>
+        {/* Categories bar with dropdowns */}
+        <div className="hidden md:flex items-center space-x-6 py-2 text-sm border-t">
+          {categories.map((category) => (
+            <DropdownMenu key={category.id}>
+              <DropdownMenuTrigger className="text-gray-600 hover:text-[#FF6E14] focus:outline-none">
+                {category.name}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 bg-white">
+                {category.subcategories.map((subcategory) => (
+                  <DropdownMenuItem key={subcategory.id} asChild>
+                    <Link 
+                      to={`/categories/${category.id}/${subcategory.id}`}
+                      className="flex items-center justify-between w-full"
+                    >
+                      {subcategory.name}
+                      <span className="text-xs text-gray-500">
+                        12 annonces
+                      </span>
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ))}
         </div>
 
         {/* Mobile menu */}
