@@ -11,6 +11,7 @@ import SignIn from "./pages/auth/SignIn";
 import SignUp from "./pages/auth/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import SubcategoryPage from "./pages/SubcategoryPage";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/auth/signup" element={<SignUp />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/categories/:categoryId/:subcategoryId" element={<SubcategoryPage />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
