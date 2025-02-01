@@ -1,8 +1,20 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Share } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useState } from "react";
 
 const ListingDetail = () => {
+  const [showSafetyDialog, setShowSafetyDialog] = useState(false);
+  const [showPhoneNumber, setShowPhoneNumber] = useState(false);
+
   // This would normally come from an API or route params
   const listing = {
     id: 1,
@@ -19,6 +31,19 @@ const ListingDetail = () => {
       email: "jean.dupont@email.com"
     },
     createdAt: "2024-02-20"
+  };
+
+  const handleShare = (platform: string) => {
+    const url = window.location.href;
+    const text = `Découvrez cette annonce : ${listing.title} - ${listing.price}`;
+    
+    const shareUrls = {
+      whatsapp: `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+      email: `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(text + "\n\n" + url)}`
+    };
+
+    window.open(shareUrls[platform as keyof typeof shareUrls], "_blank");
   };
 
   return (
@@ -77,20 +102,69 @@ const ListingDetail = () => {
                   <p className="text-gray-600">{listing.seller.email}</p>
                 </div>
                 <div className="flex flex-col gap-3">
-                  <Button className="w-full">
+                  <Button 
+                    className="w-full"
+                    onClick={() => setShowSafetyDialog(true)}
+                  >
                     <Phone className="mr-2" />
-                    Afficher le numéro
+                    {showPhoneNumber ? listing.seller.phone : "Afficher le numéro"}
                   </Button>
-                  <Button variant="outline" className="w-full">
-                    <Share className="mr-2" />
-                    Partager l'annonce
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => handleShare("whatsapp")}
+                    >
+                      WhatsApp
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => handleShare("facebook")}
+                    >
+                      Facebook
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => handleShare("email")}
+                    >
+                      Email
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      <Dialog open={showSafetyDialog} onOpenChange={setShowSafetyDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Conseils de sécurité</DialogTitle>
+          </DialogHeader>
+          <Alert>
+            <AlertDescription>
+              <ol className="list-decimal pl-4 space-y-2">
+                <li>Ne pas envoyer de paiements sans avoir vérifié le produit.</li>
+                <li>Ne pas envoyer d'argent par des moyens de transfert d'argent, par virement bancaire ou par n'importe quels autres moyens.</li>
+                <li>Donner rdv au vendeur dans un lieu public à une heure de passage.</li>
+              </ol>
+            </AlertDescription>
+          </Alert>
+          <DialogFooter>
+            <Button 
+              onClick={() => {
+                setShowPhoneNumber(true);
+                setShowSafetyDialog(false);
+              }}
+            >
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
