@@ -24,6 +24,7 @@ import {
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/ImageUpload";
+import { useCreateListing } from "@/hooks/useListings";
 
 const formSchema = z.object({
   title: z.string().min(5, "Le titre doit contenir au moins 5 caractères"),
@@ -39,6 +40,7 @@ type FormValues = z.infer<typeof formSchema>;
 const CreateListing = () => {
   const navigate = useNavigate();
   const [isPreview, setIsPreview] = useState(false);
+  const { mutate: createListing, isLoading } = useCreateListing();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -48,17 +50,24 @@ const CreateListing = () => {
       category: "",
       price: "",
       location: "",
-      images: [], // Ensure images is initialized as an empty array
+      images: [],
     },
   });
 
   const onSubmit = (data: FormValues) => {
-    console.log("Données du formulaire:", data);
-    toast.success("Annonce publiée avec succès!");
-    navigate("/");
+    createListing({
+      ...data,
+      price: parseFloat(data.price),
+    }, {
+      onSuccess: () => {
+        navigate("/");
+      }
+    });
   };
 
   const formData = form.watch();
+
+  // ... keep existing code (preview rendering logic)
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -67,6 +76,7 @@ const CreateListing = () => {
       </h1>
 
       {isPreview ? (
+        // ... keep existing code (preview card component)
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -106,7 +116,9 @@ const CreateListing = () => {
             <Button variant="outline" onClick={() => setIsPreview(false)}>
               Retour à l'édition
             </Button>
-            <Button onClick={form.handleSubmit(onSubmit)}>Publier l'annonce</Button>
+            <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
+              {isLoading ? "Publication en cours..." : "Publier l'annonce"}
+            </Button>
           </div>
         </div>
       ) : (
@@ -229,7 +241,9 @@ const CreateListing = () => {
                 >
                   Prévisualiser
                 </Button>
-                <Button type="submit">Publier</Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Publication en cours..." : "Publier l'annonce"}
+                </Button>
               </div>
             </div>
           </form>
