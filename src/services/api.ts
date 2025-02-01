@@ -2,7 +2,7 @@ import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5000/api'; // Ajustez l'URL selon votre configuration
 
 export const listingService = {
   async createListing(listing: CreateListingDTO): Promise<Listing> {
@@ -12,6 +12,35 @@ export const listingService = {
     } catch (error) {
       console.error("Erreur création annonce:", error);
       throw new Error("Erreur lors de la création de l'annonce");
+    }
+  },
+
+  async updateListing(id: string, listing: Partial<CreateListingDTO>): Promise<Listing> {
+    try {
+      const response = await axios.put(`${API_URL}/listings/${id}`, listing);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur mise à jour annonce:", error);
+      throw new Error("Erreur lors de la mise à jour de l'annonce");
+    }
+  },
+
+  async deleteListing(id: string): Promise<void> {
+    try {
+      await axios.delete(`${API_URL}/listings/${id}`);
+    } catch (error) {
+      console.error("Erreur suppression annonce:", error);
+      throw new Error("Erreur lors de la suppression de l'annonce");
+    }
+  },
+
+  async markAsSold(id: string): Promise<Listing> {
+    try {
+      const response = await axios.put(`${API_URL}/listings/${id}/sold`);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur marquage comme vendu:", error);
+      throw new Error("Erreur lors du marquage comme vendu");
     }
   },
 
@@ -25,53 +54,23 @@ export const listingService = {
     }
   },
 
-  async searchListings(query: string): Promise<Listing[]> {
+  async getUserListings(userId: string): Promise<Listing[]> {
     try {
-      const response = await axios.get(`${API_URL}/listings/search`, {
-        params: { q: query }
-      });
+      const response = await axios.get(`${API_URL}/listings/user/${userId}`);
       return response.data;
     } catch (error) {
-      console.error("Erreur recherche annonces:", error);
-      throw new Error("Erreur lors de la recherche d'annonces");
+      console.error("Erreur récupération annonces utilisateur:", error);
+      throw new Error("Erreur lors de la récupération des annonces de l'utilisateur");
     }
   },
 
-  async uploadImages(files: File[]): Promise<string[]> {
+  async getListingsByCategory(categoryId: string): Promise<Listing[]> {
     try {
-      const formData = new FormData();
-      files.forEach(file => formData.append('images', file));
-
-      const response = await axios.post(`${API_URL}/listings/upload`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      return response.data.urls;
-    } catch (error) {
-      console.error("Erreur upload images:", error);
-      throw new Error("Erreur lors de l'upload des images");
-    }
-  },
-
-  async toggleFavorite(listingId: string, userId: string): Promise<void> {
-    try {
-      await axios.post(`${API_URL}/listings/${listingId}/favorite`, { userId });
-      toast.success("Statut des favoris mis à jour");
-    } catch (error) {
-      console.error("Erreur mise à jour favoris:", error);
-      throw new Error("Erreur lors de la mise à jour des favoris");
-    }
-  },
-
-  async getFavorites(userId: string): Promise<string[]> {
-    try {
-      const response = await axios.get(`${API_URL}/users/${userId}/favorites`);
+      const response = await axios.get(`${API_URL}/listings/category/${categoryId}`);
       return response.data;
     } catch (error) {
-      console.error("Erreur récupération favoris:", error);
-      throw new Error("Erreur lors de la récupération des favoris");
+      console.error("Erreur récupération annonces par catégorie:", error);
+      throw new Error("Erreur lors de la récupération des annonces par catégorie");
     }
-  }
+  },
 };

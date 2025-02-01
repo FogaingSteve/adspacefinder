@@ -8,6 +8,7 @@ export interface Listing {
   location: string;
   images: string[];
   userId: string;
+  isSold?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
