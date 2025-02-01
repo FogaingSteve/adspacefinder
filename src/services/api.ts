@@ -73,4 +73,45 @@ export const listingService = {
       throw new Error("Erreur lors de la récupération des annonces par catégorie");
     }
   },
+
+  async searchListings(query: string): Promise<Listing[]> {
+    try {
+      const response = await axios.get(`${API_URL}/listings/search`, { params: { q: query } });
+      return response.data;
+    } catch (error) {
+      console.error("Erreur recherche annonces:", error);
+      throw new Error("Erreur lors de la recherche d'annonces");
+    }
+  },
+
+  async uploadImages(files: File[]): Promise<string[]> {
+    try {
+      const formData = new FormData();
+      files.forEach(file => formData.append('images', file));
+      const response = await axios.post(`${API_URL}/listings/upload`, formData);
+      return response.data.urls;
+    } catch (error) {
+      console.error("Erreur upload images:", error);
+      throw new Error("Erreur lors de l'upload des images");
+    }
+  },
+
+  async toggleFavorite(listingId: string, userId: string): Promise<void> {
+    try {
+      await axios.post(`${API_URL}/listings/${listingId}/favorite`, { userId });
+    } catch (error) {
+      console.error("Erreur toggle favori:", error);
+      throw new Error("Erreur lors de l'ajout/retrait des favoris");
+    }
+  },
+
+  async getFavorites(userId: string): Promise<Listing[]> {
+    try {
+      const response = await axios.get(`${API_URL}/listings/favorites/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur récupération favoris:", error);
+      throw new Error("Erreur lors de la récupération des favoris");
+    }
+  }
 };

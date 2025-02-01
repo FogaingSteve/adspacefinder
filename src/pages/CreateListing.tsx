@@ -58,8 +58,13 @@ const CreateListing = () => {
 
   const onSubmit = (data: FormValues) => {
     createListingMutation.mutate({
-      ...data,
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      subcategory: data.subcategory,
       price: parseFloat(data.price),
+      location: data.location,
+      images: data.images
     }, {
       onSuccess: () => {
         navigate("/");
@@ -69,8 +74,6 @@ const CreateListing = () => {
 
   const formData = form.watch();
 
-  // ... keep existing code (preview rendering logic)
-
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">
@@ -78,7 +81,6 @@ const CreateListing = () => {
       </h1>
 
       {isPreview ? (
-        // ... keep existing code (preview card component)
         <div className="space-y-6">
           <Card>
             <CardHeader>
