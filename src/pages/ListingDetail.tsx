@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Phone, Share } from "lucide-react";
+import { Phone, Facebook, Mail, MessageSquare } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,13 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useState } from "react";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
@@ -24,6 +31,8 @@ const ListingDetail = () => {
     location: "Paris 11ème",
     images: [
       "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=80",
+      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=500&q=80",
+      "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=500&q=80",
     ],
     seller: {
       name: "Jean Dupont",
@@ -51,13 +60,23 @@ const ListingDetail = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Images and main info */}
         <div className="md:col-span-2 space-y-6">
-          <div className="aspect-video relative overflow-hidden rounded-lg">
-            <img
-              src={listing.images[0]}
-              alt={listing.title}
-              className="object-cover w-full h-full"
-            />
-          </div>
+          <Carousel className="w-full">
+            <CarouselContent>
+              {listing.images.map((image, index) => (
+                <CarouselItem key={index}>
+                  <div className="aspect-video relative overflow-hidden rounded-lg">
+                    <img
+                      src={image}
+                      alt={`${listing.title} - Image ${index + 1}`}
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
 
           <Card>
             <CardHeader>
@@ -112,23 +131,26 @@ const ListingDetail = () => {
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 
-                      className="flex-1"
+                      className="flex-1 flex items-center gap-2"
                       onClick={() => handleShare("whatsapp")}
                     >
+                      <MessageSquare className="h-4 w-4" />
                       WhatsApp
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="flex-1"
+                      className="flex-1 flex items-center gap-2"
                       onClick={() => handleShare("facebook")}
                     >
+                      <Facebook className="h-4 w-4" />
                       Facebook
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="flex-1"
+                      className="flex-1 flex items-center gap-2"
                       onClick={() => handleShare("email")}
                     >
+                      <Mail className="h-4 w-4" />
                       Email
                     </Button>
                   </div>
