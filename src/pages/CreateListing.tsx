@@ -30,6 +30,7 @@ const formSchema = z.object({
   title: z.string().min(5, "Le titre doit contenir au moins 5 caractères"),
   description: z.string().min(20, "La description doit contenir au moins 20 caractères"),
   category: z.string().min(1, "Veuillez sélectionner une catégorie"),
+  subcategory: z.string().min(1, "Veuillez sélectionner une sous-catégorie"),
   price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Prix invalide"),
   location: z.string().min(3, "La localisation doit contenir au moins 3 caractères"),
   images: z.array(z.string()).min(1, "Veuillez ajouter au moins une image"),
@@ -40,7 +41,7 @@ type FormValues = z.infer<typeof formSchema>;
 const CreateListing = () => {
   const navigate = useNavigate();
   const [isPreview, setIsPreview] = useState(false);
-  const { mutate: createListing, isLoading } = useCreateListing();
+  const createListingMutation = useCreateListing();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -48,6 +49,7 @@ const CreateListing = () => {
       title: "",
       description: "",
       category: "",
+      subcategory: "",
       price: "",
       location: "",
       images: [],
@@ -55,7 +57,7 @@ const CreateListing = () => {
   });
 
   const onSubmit = (data: FormValues) => {
-    createListing({
+    createListingMutation.mutate({
       ...data,
       price: parseFloat(data.price),
     }, {
@@ -106,6 +108,10 @@ const CreateListing = () => {
                   <p className="text-gray-600">{formData.category}</p>
                 </div>
                 <div>
+                  <h3 className="font-semibold mb-2">Sous-catégorie</h3>
+                  <p className="text-gray-600">{formData.subcategory}</p>
+                </div>
+                <div>
                   <h3 className="font-semibold mb-2">Localisation</h3>
                   <p className="text-gray-600">{formData.location}</p>
                 </div>
@@ -116,8 +122,8 @@ const CreateListing = () => {
             <Button variant="outline" onClick={() => setIsPreview(false)}>
               Retour à l'édition
             </Button>
-            <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
-              {isLoading ? "Publication en cours..." : "Publier l'annonce"}
+            <Button onClick={form.handleSubmit(onSubmit)} disabled={createListingMutation.isPending}>
+              {createListingMutation.isPending ? "Publication en cours..." : "Publier l'annonce"}
             </Button>
           </div>
         </div>
@@ -203,6 +209,30 @@ const CreateListing = () => {
 
             <FormField
               control={form.control}
+              name="subcategory"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sous-catégorie</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionnez une sous-catégorie" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="appartements">Appartements</SelectItem>
+                      <SelectItem value="maisons">Maisons</SelectItem>
+                      <SelectItem value="terrains">Terrains</SelectItem>
+                      <SelectItem value="bureaux">Bureaux</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="price"
               render={({ field }) => (
                 <FormItem>
@@ -241,8 +271,8 @@ const CreateListing = () => {
                 >
                   Prévisualiser
                 </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Publication en cours..." : "Publier l'annonce"}
+                <Button type="submit" disabled={createListingMutation.isPending}>
+                  {createListingMutation.isPending ? "Publication en cours..." : "Publier l'annonce"}
                 </Button>
               </div>
             </div>
