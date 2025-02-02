@@ -15,14 +15,16 @@ export const AdminDashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Check if user is admin using user metadata from Supabase
     const checkAdmin = async () => {
       if (!user?.id) {
         navigate("/");
         return;
       }
       
-      const isUserAdmin = user.user_metadata?.role === 'admin';
+      // Check if user has admin role in metadata
+      const userMetadata = user.user_metadata || {};
+      const isUserAdmin = userMetadata.role === 'admin';
+      
       if (!isUserAdmin) {
         navigate("/");
       } else {
@@ -105,4 +107,4 @@ export const AdminDashboard = () => {
       </Tabs>
     </div>
   );
-};
+}
