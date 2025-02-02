@@ -1,41 +1,40 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./hooks/useAuth";
-import Index from "./pages/Index";
-import ListingDetail from "./pages/ListingDetail";
-import CreateListing from "./pages/CreateListing";
-import SignIn from "./pages/auth/SignIn";
-import SignUp from "./pages/auth/SignUp";
-import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
-import SubcategoryPage from "./pages/SubcategoryPage";
+import { AuthProvider } from "@/hooks/useAuth";
+import { Navigation } from "@/components/Navigation";
+import { Footer } from "@/components/Footer";
+import { Toaster } from "sonner";
+import { AdminDashboard } from "@/pages/admin/Dashboard";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/listings/:id" element={<ListingDetail />} />
-            <Route path="/listings/create" element={<CreateListing />} />
-            <Route path="/auth/signin" element={<SignIn />} />
-            <Route path="/auth/signup" element={<SignUp />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/categories/:categoryId/:subcategoryId" element={<SubcategoryPage />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <div className="min-h-screen">
+            <Navigation />
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/listings/create" element={<CreateListing />} />
+              <Route path="/listings/my-searches" element={<MySearches />} />
+              <Route path="/listings/favorites" element={<Favorites />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/auth/signin" element={<SignIn />} />
+              <Route path="/auth/signup" element={<SignUp />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+            </Routes>
+            <Footer />
+            <Toaster />
+          </div>
+        </QueryClientProvider>
+      </AuthProvider>
+    </Router>
+  );
+}
 
 export default App;
