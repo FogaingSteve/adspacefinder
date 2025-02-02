@@ -1,48 +1,47 @@
 import { Link } from "react-router-dom";
 import { MapPin } from "lucide-react";
 import { Button } from "./ui/button";
-
-const recentListings = [
-  {
-    id: 1,
-    title: "Appartement F3 lumineux",
-    price: "180 000 CFA",
-    location: "Yaoundé, Cameroun",
-    image: "https://images.unsplash.com/photo-1721322800607-8c38375eef04",
-    timePosted: "Il y a 30 minutes"
-  },
-  {
-    id: 2,
-    title: "Toyota Corolla 2019",
-    price: "8 500 000 CFA",
-    location: "Douala, Cameroun",
-    image: "https://images.unsplash.com/photo-1487252665478-49b61b47f302",
-    timePosted: "Il y a 1 heure"
-  },
-  {
-    id: 3,
-    title: "iPhone 13 Pro Max",
-    price: "450 000 CFA",
-    location: "Bafoussam, Cameroun",
-    image: "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1",
-    timePosted: "Il y a 2 heures"
-  },
-  {
-    id: 4,
-    title: "Vélo tout terrain",
-    price: "120 000 CFA",
-    location: "Kribi, Cameroun",
-    image: "https://images.unsplash.com/photo-1452378174528-3090a4bba7b2",
-    timePosted: "Il y a 3 heures"
-  }
-];
+import { useRecentListings } from "@/hooks/useListings";
+import { Skeleton } from "./ui/skeleton";
 
 export const RecentListings = () => {
+  const { data: listings, isLoading } = useRecentListings();
+
+  if (isLoading) {
+    return (
+      <div className="my-12">
+        <h2 className="text-2xl font-bold mb-6">Annonces récentes</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white rounded-lg shadow-sm p-4">
+              <Skeleton className="w-full aspect-video rounded-lg" />
+              <div className="space-y-2 mt-4">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!listings || listings.length === 0) {
+    return (
+      <div className="my-12">
+        <h2 className="text-2xl font-bold mb-6">Annonces récentes</h2>
+        <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+          <p className="text-gray-500">Aucune annonce disponible pour le moment</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="my-12">
       <h2 className="text-2xl font-bold mb-6">Annonces récentes</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {recentListings.map((listing) => (
+        {listings.map((listing) => (
           <Link
             key={listing.id}
             to={`/listings/${listing.id}`}
@@ -50,7 +49,7 @@ export const RecentListings = () => {
           >
             <div className="aspect-video relative overflow-hidden">
               <img
-                src={listing.image}
+                src={listing.images[0]}
                 alt={listing.title}
                 className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
               />
@@ -77,7 +76,7 @@ export const RecentListings = () => {
                 </Button>
               </div>
               <div className="absolute top-2 left-2 bg-white/80 rounded px-2 py-1 text-sm">
-                {listing.timePosted}
+                {new Date(listing.createdAt || "").toLocaleDateString()}
               </div>
             </div>
             <div className="p-4">
@@ -86,7 +85,7 @@ export const RecentListings = () => {
                   <h3 className="font-medium text-lg text-gray-900 group-hover:text-primary">
                     {listing.title}
                   </h3>
-                  <p className="text-primary font-bold mt-2">{listing.price}</p>
+                  <p className="text-primary font-bold mt-2">{listing.price} CFA</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 mt-2 text-gray-500 text-sm">

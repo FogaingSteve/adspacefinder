@@ -1,89 +1,69 @@
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MessageSquare, History, BarChart, Heart, Search, Eye } from "lucide-react";
+import { Package, MessageSquare, Eye, Heart, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserListings } from "@/hooks/useListings";
+import { Link } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
+  const { data: userListings, isLoading } = useUserListings(user?.id || "");
 
   const stats = [
     {
       title: "Annonces actives",
-      value: "12",
+      value: userListings?.length || "0",
       icon: Package,
     },
     {
       title: "Messages non lus",
-      value: "4",
+      value: "0",
       icon: MessageSquare,
     },
     {
       title: "Vues totales",
-      value: "1,234",
+      value: "0",
       icon: Eye,
     },
   ];
 
-  const recentListings = [
-    {
-      id: 1,
-      title: "iPhone 13 Pro",
-      date: "2024-02-20",
-      views: 45,
-      favorites: 12,
-      status: "active",
-      image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=80",
-    },
-    {
-      id: 2,
-      title: "MacBook Pro 2021",
-      date: "2024-02-18",
-      views: 123,
-      favorites: 8,
-      status: "expired",
-      image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=80",
-    },
-  ];
-
-  const messages = [
-    {
-      id: 1,
-      sender: "Jean Dupont",
-      message: "Bonjour, est-ce que l'iPhone est toujours disponible ?",
-      date: "2024-02-20",
-      unread: true,
-    },
-    {
-      id: 2,
-      sender: "Marie Martin",
-      message: "Je suis intéressé par le MacBook",
-      date: "2024-02-19",
-      unread: false,
-    },
-  ];
-
-  const favorites = [
-    {
-      id: 1,
-      title: "Appartement Paris",
-      price: "250,000 €",
-      date: "2024-02-20",
-      image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=80",
-    },
-    {
-      id: 2,
-      title: "Voiture occasion",
-      price: "15,000 €",
-      date: "2024-02-19",
-      image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=80",
-    },
-  ];
-
-  const filteredListings = recentListings.filter(listing =>
+  const filteredListings = userListings?.filter(listing =>
     listing.title.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
+  const EmptyState = () => (
+    <div className="text-center py-12">
+      <Package className="mx-auto h-12 w-12 text-gray-400" />
+      <h3 className="mt-4 text-lg font-medium text-gray-900">Aucune annonce</h3>
+      <p className="mt-2 text-sm text-gray-500">
+        Commencez par créer votre première annonce
+      </p>
+      <Button asChild className="mt-4">
+        <Link to="/listings/create">
+          Créer une annonce
+        </Link>
+      </Button>
+    </div>
+  );
+
+  const LoadingState = () => (
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+          <Skeleton className="w-20 h-20 rounded" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 
   return (
@@ -128,49 +108,53 @@ export default function Dashboard() {
             <TabsTrigger value="favorites">Favoris</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="listings" className="space-y-4">
+          <TabsContent value="listings">
             <Card>
               <CardHeader>
                 <CardTitle>Annonces récentes</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {filteredListings.map((listing) => (
-                    <div
-                      key={listing.id}
-                      className="flex items-center gap-4 p-4 border rounded-lg"
-                    >
-                      <img
-                        src={listing.image}
-                        alt={listing.title}
-                        className="w-20 h-20 object-cover rounded"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-medium">{listing.title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {listing.date}
-                        </p>
-                        <div className="flex items-center gap-4 mt-2">
-                          <span className="flex items-center gap-1 text-sm">
-                            <Eye className="h-4 w-4" /> {listing.views}
-                          </span>
-                          <span className="flex items-center gap-1 text-sm">
-                            <Heart className="h-4 w-4" /> {listing.favorites}
-                          </span>
-                        </div>
-                      </div>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          listing.status === "active"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
+                {isLoading ? (
+                  <LoadingState />
+                ) : filteredListings.length === 0 ? (
+                  <EmptyState />
+                ) : (
+                  <div className="space-y-4">
+                    {filteredListings.map((listing) => (
+                      <div
+                        key={listing.id}
+                        className="flex items-center gap-4 p-4 border rounded-lg"
                       >
-                        {listing.status === "active" ? "Active" : "Expirée"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                        <img
+                          src={listing.images[0]}
+                          alt={listing.title}
+                          className="w-20 h-20 object-cover rounded"
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-medium">{listing.title}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(listing.createdAt || "").toLocaleDateString()}
+                          </p>
+                          <div className="flex items-center gap-4 mt-2">
+                            <span className="flex items-center gap-1 text-sm">
+                              <Eye className="h-4 w-4" /> 0
+                            </span>
+                            <span className="flex items-center gap-1 text-sm">
+                              <Heart className="h-4 w-4" /> 0
+                            </span>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          listing.isSold
+                            ? "bg-red-100 text-red-800"
+                            : "bg-green-100 text-green-800"
+                        }`}>
+                          {listing.isSold ? "Vendu" : "Active"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
