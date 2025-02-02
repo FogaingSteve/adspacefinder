@@ -10,6 +10,7 @@ import { categories } from "@/data/categories";
 import { RecentListings } from "@/components/RecentListings";
 import { useSearchListings } from "@/hooks/useListings";
 import { toast } from "sonner";
+import { NotificationPreferences } from "@/components/NotificationPreferences";
 
 const cities = ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda", "Kribi"];
 const priceRanges = [
