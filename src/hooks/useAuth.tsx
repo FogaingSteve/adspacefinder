@@ -9,6 +9,7 @@ interface User {
   user_metadata?: {
     name?: string;
     avatar_url?: string;
+    role?: string;
   };
 }
 
@@ -19,7 +20,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  updateProfile: (data: { name?: string; avatar_url?: string }) => Promise<void>;
+  updateProfile: (data: { name?: string; avatar_url?: string; role?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
