@@ -20,8 +20,10 @@ export const ListingModeration = () => {
   const { isLoading } = useQuery({
     queryKey: ['admin-listings'],
     queryFn: adminService.getPendingListings,
-    onSuccess: (data) => setListings(data),
-    onError: () => toast.error("Erreur lors du chargement des annonces")
+    meta: {
+      onSuccess: (data) => setListings(data),
+      onError: () => toast.error("Erreur lors du chargement des annonces")
+    }
   });
 
   const handleApproveListing = async (listingId: string) => {
