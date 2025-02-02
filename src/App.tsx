@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import Index from "@/pages/Index";
 import AdminLogin from "@/pages/auth/AdminLogin";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -25,47 +26,49 @@ import { NotFound } from "@/pages/NotFound";
 
 function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/auth/admin" element={<AdminLogin />} />
-        <Route path="/auth/signin" element={<SignIn />} />
-        <Route path="/auth/signup" element={<SignUp />} />
-        <Route path="/auth/reset-password" element={<ResetPassword />} />
-        
-        {/* Protected Admin Routes */}
-        <Route path="/admin" element={<ProtectedRoute role="admin" />}>
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="users" element={<Users />} />
-          <Route path="listings" element={<Listings />} />
-          <Route path="categories" element={<Categories />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="analytics" element={<Analytics />} />
-        </Route>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/auth/admin" element={<AdminLogin />} />
+          <Route path="/auth/signin" element={<SignIn />} />
+          <Route path="/auth/signup" element={<SignUp />} />
+          <Route path="/auth/reset-password" element={<ResetPassword />} />
+          
+          {/* Protected Admin Routes */}
+          <Route path="/admin" element={<ProtectedRoute role="admin" />}>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="users" element={<Users />} />
+            <Route path="listings" element={<Listings />} />
+            <Route path="categories" element={<Categories />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="analytics" element={<Analytics />} />
+          </Route>
 
-        {/* Protected User Routes */}
-        <Route path="/profile" element={<ProtectedRoute />}>
-          <Route index element={<Profile />} />
-        </Route>
-        <Route path="/listings" element={<ProtectedRoute />}>
-          <Route path="create" element={<CreateListing />} />
-          <Route path="edit/:id" element={<EditListing />} />
-        </Route>
-        <Route path="/messages" element={<ProtectedRoute />}>
-          <Route index element={<Messages />} />
-        </Route>
-        <Route path="/favorites" element={<ProtectedRoute />}>
-          <Route index element={<Favorites />} />
-        </Route>
+          {/* Protected User Routes */}
+          <Route path="/profile" element={<ProtectedRoute />}>
+            <Route index element={<Profile />} />
+          </Route>
+          <Route path="/listings" element={<ProtectedRoute />}>
+            <Route path="create" element={<CreateListing />} />
+            <Route path="edit/:id" element={<EditListing />} />
+          </Route>
+          <Route path="/messages" element={<ProtectedRoute />}>
+            <Route index element={<Messages />} />
+          </Route>
+          <Route path="/favorites" element={<ProtectedRoute />}>
+            <Route index element={<Favorites />} />
+          </Route>
 
-        {/* Public Routes */}
-        <Route path="/listings/:id" element={<ListingDetails />} />
-        <Route path="/search" element={<Search />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Toaster />
-    </AuthProvider>
+          {/* Public Routes */}
+          <Route path="/listings/:id" element={<ListingDetails />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Toaster />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
