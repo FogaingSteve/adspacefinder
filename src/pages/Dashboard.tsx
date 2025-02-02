@@ -6,14 +6,15 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useUserListings } from "@/hooks/useListings";
+import { useUserListings, useFavorites } from "@/hooks/useListings";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const { user } = useAuth();
-  const { data: userListings, isLoading } = useUserListings(user?.id || "");
+  const { data: userListings, isLoading: listingsLoading } = useUserListings(user?.id || "");
+  const { data: favorites, isLoading: favoritesLoading } = useFavorites(user?.id || "");
 
   const stats = [
     {
@@ -104,7 +105,6 @@ export default function Dashboard() {
         <Tabs defaultValue="listings" className="space-y-4">
           <TabsList>
             <TabsTrigger value="listings">Mes annonces</TabsTrigger>
-            <TabsTrigger value="messages">Messages</TabsTrigger>
             <TabsTrigger value="favorites">Favoris</TabsTrigger>
           </TabsList>
 
@@ -114,7 +114,7 @@ export default function Dashboard() {
                 <CardTitle>Annonces récentes</CardTitle>
               </CardHeader>
               <CardContent>
-                {isLoading ? (
+                {listingsLoading ? (
                   <LoadingState />
                 ) : filteredListings.length === 0 ? (
                   <EmptyState />
@@ -159,75 +159,58 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="messages">
-            <Card>
-              <CardHeader>
-                <CardTitle>Messages récents</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`p-4 border rounded-lg ${
-                        message.unread ? "bg-blue-50" : "bg-white"
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-medium">{message.sender}</h3>
-                        <span className="text-sm text-gray-500">{message.date}</span>
-                      </div>
-                      <p className="text-sm text-gray-600">{message.message}</p>
-                      {message.unread && (
-                        <span className="inline-block px-2 py-1 mt-2 text-xs bg-blue-100 text-blue-800 rounded-full">
-                          Nouveau
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="favorites">
             <Card>
               <CardHeader>
                 <CardTitle>Annonces favorites</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {favorites.map((favorite) => (
-                    <div
-                      key={favorite.id}
-                      className="flex gap-4 p-4 border rounded-lg"
-                    >
-                      <img
-                        src={favorite.image}
-                        alt={favorite.title}
-                        className="w-24 h-24 object-cover rounded"
-                      />
-                      <div>
-                        <h3 className="font-medium">{favorite.title}</h3>
-                        <p className="text-primary font-bold mt-1">
-                          {favorite.price}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {favorite.date}
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => {}}
-                        >
-                          <Heart className="h-4 w-4 mr-2" />
-                          Retirer des favoris
-                        </Button>
+                {favoritesLoading ? (
+                  <LoadingState />
+                ) : !favorites || favorites.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Heart className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-4 text-lg font-medium text-gray-900">
+                      Aucune annonce favorite
+                    </h3>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Ajoutez des annonces à vos favoris pour les retrouver ici
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {favorites.map((favorite) => (
+                      <div
+                        key={favorite.id}
+                        className="flex gap-4 p-4 border rounded-lg"
+                      >
+                        <img
+                          src={favorite.images[0]}
+                          alt={favorite.title}
+                          className="w-24 h-24 object-cover rounded"
+                        />
+                        <div>
+                          <h3 className="font-medium">{favorite.title}</h3>
+                          <p className="text-primary font-bold mt-1">
+                            {favorite.price} CFA
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {new Date(favorite.createdAt || "").toLocaleDateString()}
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            onClick={() => {}}
+                          >
+                            <Heart className="h-4 w-4 mr-2" />
+                            Retirer des favoris
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
