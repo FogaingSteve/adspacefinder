@@ -23,8 +23,10 @@ export const NotificationSettings = () => {
   const { isLoading } = useQuery({
     queryKey: ['notification-settings'],
     queryFn: adminService.getNotificationSettings,
-    onSuccess: (data) => setSettings(data),
-    onError: () => toast.error("Erreur lors du chargement des paramètres")
+    meta: {
+      onSuccess: (data: NotificationSettings) => setSettings(data),
+      onError: () => toast.error("Erreur lors du chargement des paramètres")
+    }
   });
 
   const handleSaveSettings = async () => {
