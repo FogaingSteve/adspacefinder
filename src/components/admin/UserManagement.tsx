@@ -25,10 +25,8 @@ export const UserManagement = () => {
   const { isLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: adminService.getUsers,
-    meta: {
-      onSuccess: (data) => setUsers(data),
-      onError: () => toast.error("Erreur lors du chargement des utilisateurs")
-    }
+    onSuccess: (data) => setUsers(data),
+    onError: () => toast.error("Erreur lors du chargement des utilisateurs")
   });
 
   const handleBanUser = async (userId: string) => {
