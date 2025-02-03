@@ -16,7 +16,7 @@ export const AdminDashboard = () => {
 
   useEffect(() => {
     // Check if user is admin
-    if (!user?.user_metadata?.isAdmin) {
+    if (!user?.user_metadata?.is_admin) {
       navigate("/");
     } else {
       setIsAdmin(true);

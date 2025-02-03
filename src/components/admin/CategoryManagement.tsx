@@ -26,8 +26,10 @@ export const CategoryManagement = () => {
   const { isLoading } = useQuery({
     queryKey: ['admin-categories'],
     queryFn: adminService.getCategories,
-    onSuccess: (data) => setCategories(data),
-    onError: () => toast.error("Erreur lors du chargement des catégories")
+    meta: {
+      onSuccess: (data: Category[]) => setCategories(data),
+      onError: () => toast.error("Erreur lors du chargement des catégories")
+    }
   });
 
   const handleAddCategory = async () => {

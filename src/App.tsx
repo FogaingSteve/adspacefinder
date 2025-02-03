@@ -5,6 +5,16 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Toaster } from "sonner";
 import { AdminDashboard } from "@/pages/admin/Dashboard";
+import Home from "@/pages/Index";
+import CreateListing from "@/pages/CreateListing";
+import MySearches from "@/pages/MySearches";
+import Favorites from "@/pages/Favorites";
+import Messages from "@/pages/Messages";
+import Profile from "@/pages/Profile";
+import Dashboard from "@/pages/Dashboard";
+import Settings from "@/pages/Settings";
+import SignIn from "@/pages/auth/SignIn";
+import SignUp from "@/pages/auth/SignUp";
 
 const queryClient = new QueryClient();
 
@@ -38,3 +48,4 @@ function App() {
 }
 
 export default App;
+
