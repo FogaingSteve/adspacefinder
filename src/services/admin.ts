@@ -82,5 +82,35 @@ export const adminService = {
       console.error("Error updating notification settings:", error);
       throw error;
     }
+  },
+
+  async getCategories() {
+    try {
+      const response = await axios.get(`${API_URL}/categories`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      throw error;
+    }
+  },
+
+  async addCategory(categoryData: { name: string }) {
+    try {
+      const response = await axios.post(`${API_URL}/categories`, categoryData);
+      return response.data;
+    } catch (error) {
+      console.error("Error adding category:", error);
+      throw error;
+    }
+  },
+
+  async deleteCategory(categoryId: string) {
+    try {
+      const response = await axios.delete(`${API_URL}/categories/${categoryId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      throw error;
+    }
   }
 };
