@@ -1,7 +1,7 @@
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, Car, Smartphone, Shirt, Home, Microwave, Armchair, Briefcase, Handshake, Baby, Trophy } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
@@ -10,6 +10,8 @@ import { categories } from "@/data/categories";
 import { RecentListings } from "@/components/RecentListings";
 import { useSearchListings } from "@/hooks/useListings";
 import { toast } from "sonner";
+import { topCategories } from "@/data/topCategories";
+import { CategoryListings } from "@/components/CategoryListings";
 
 const cities = ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda", "Kribi"];
 const priceRanges = [
@@ -17,19 +19,6 @@ const priceRanges = [
   "500,000 - 2,000,000 CFA",
   "2,000,000 - 10,000,000 CFA",
   "10,000,000+ CFA",
-];
-
-const topCategories = [
-  { icon: Car, name: "Véhicules", link: "/categories/vehicules" },
-  { icon: Smartphone, name: "Electronique", link: "/categories/electronique" },
-  { icon: Shirt, name: "Mode & Beauté", link: "/categories/mode" },
-  { icon: Home, name: "Immobilier", link: "/categories/immobilier" },
-  { icon: Microwave, name: "Electroménager", link: "/categories/electromenager" },
-  { icon: Armchair, name: "Pour la maison", link: "/categories/maison" },
-  { icon: Briefcase, name: "Emplois", link: "/categories/emplois" },
-  { icon: Handshake, name: "Services", link: "/categories/services" },
-  { icon: Baby, name: "Pour l'enfant", link: "/categories/enfant" },
-  { icon: Trophy, name: "Sports & Loisirs", link: "/categories/sports" },
 ];
 
 const Index = () => {
@@ -45,7 +34,6 @@ const Index = () => {
       toast.error("Veuillez entrer un terme de recherche");
       return;
     }
-    // La recherche est automatiquement déclenchée par useSearchListings
     toast.success("Recherche en cours...");
   };
 
@@ -177,7 +165,7 @@ const Index = () => {
         </div>
       )}
 
-      {/* Rest of the page */}
+      {/* Categories Section */}
       <div className="container mx-auto px-4 py-12">
         <h2 className="text-2xl font-bold mb-8 text-center">Top Catégories</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-4">
@@ -193,6 +181,22 @@ const Index = () => {
           ))}
         </div>
       </div>
+
+      {/* Category Listings Sections */}
+      {categories.map((category) => (
+        <div key={category.id} className="container mx-auto px-4 py-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">{category.name}</h2>
+            <Link 
+              to={`/categories/${category.id}`}
+              className="text-primary hover:underline"
+            >
+              Voir tout
+            </Link>
+          </div>
+          <CategoryListings categoryId={category.id} limit={4} />
+        </div>
+      ))}
 
       {/* Recent Listings Section */}
       <div className="container mx-auto px-4">
