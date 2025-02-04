@@ -2,16 +2,34 @@ import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
 
-const API_URL = 'http://localhost:5000/api'; // Ajustez l'URL selon votre configuration
+const API_URL = 'http://localhost:5000/api';
+
+// Créer une instance axios avec la configuration par défaut
+const api = axios.create({
+  baseURL: API_URL
+});
+
+// Intercepteur pour ajouter le token d'authentification
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token'); // ou récupérer depuis Supabase
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 export const listingService = {
   async createListing(listing: CreateListingDTO): Promise<Listing> {
     try {
-      const response = await axios.post(`${API_URL}/listings`, listing);
+      const response = await api.post('/listings', listing);
       return response.data;
-    } catch (error) {
-      console.error("Erreur création annonce:", error);
-      throw new Error("Erreur lors de la création de l'annonce");
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        toast.error("Veuillez vous connecter pour créer une annonce");
+      } else {
+        toast.error("Erreur lors de la création de l'annonce");
+      }
+      throw error;
     }
   },
 

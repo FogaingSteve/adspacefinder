@@ -3,6 +3,7 @@ const router = express.Router();
 const Listing = require('../models/Listing');
 const multer = require('multer');
 const path = require('path');
+const auth = require('../middleware/auth');
 
 // Configuration de multer pour l'upload d'images
 const storage = multer.diskStorage({
@@ -16,10 +17,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Créer une nouvelle annonce
-router.post('/', async (req, res) => {
+// Créer une nouvelle annonce (protégée)
+router.post('/', auth, async (req, res) => {
   try {
-    const listing = new Listing(req.body);
+    const listing = new Listing({
+      ...req.body,
+      userId: req.userId // Ajout automatique de l'ID de l'utilisateur
+    });
     await listing.save();
     res.status(201).json(listing);
   } catch (error) {
