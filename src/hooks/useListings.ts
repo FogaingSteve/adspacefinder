@@ -9,8 +9,10 @@ export const useCreateListing = () => {
   return useMutation({
     mutationFn: (data: CreateListingDTO) => listingService.createListing(data),
     onSuccess: () => {
+      // Invalider les requêtes pour mettre à jour l'affichage
       queryClient.invalidateQueries({ queryKey: ['recentListings'] });
       queryClient.invalidateQueries({ queryKey: ['userListings'] });
+      queryClient.invalidateQueries({ queryKey: ['categoryListings'] });
       toast.success("Annonce créée avec succès");
     },
     onError: (error: Error) => {

@@ -22,7 +22,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { toast } from "sonner";
 import { ImageUpload } from "@/components/ImageUpload";
 import { useCreateListing } from "@/hooks/useListings";
 
@@ -67,6 +66,7 @@ const CreateListing = () => {
       images: data.images
     }, {
       onSuccess: () => {
+        // Redirection vers la page d'accueil après création
         navigate("/");
       }
     });
