@@ -148,6 +148,15 @@ export const Navigation = () => {
                 {category.name}
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56 bg-white">
+                <DropdownMenuItem asChild>
+                  <Link 
+                    to={`/categories/${category.id}`}
+                    className="flex items-center justify-between w-full font-semibold"
+                  >
+                    Voir toute la catégorie
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 {category.subcategories.map((subcategory) => (
                   <DropdownMenuItem key={subcategory.id} asChild>
                     <Link 

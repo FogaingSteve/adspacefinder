@@ -15,6 +15,8 @@ import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import SignIn from "@/pages/auth/SignIn";
 import SignUp from "@/pages/auth/SignUp";
+import CategoryPage from "@/pages/CategoryPage";
+import SubcategoryPage from "@/pages/SubcategoryPage";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +39,8 @@ function App() {
               <Route path="/auth/signin" element={<SignIn />} />
               <Route path="/auth/signup" element={<SignUp />} />
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/categories/:categoryId" element={<CategoryPage />} />
+              <Route path="/categories/:categoryId/:subcategoryId" element={<SubcategoryPage />} />
             </Routes>
             <Footer />
             <Toaster />
@@ -48,4 +52,3 @@ function App() {
 }
 
 export default App;
-
