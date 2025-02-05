@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
@@ -11,23 +12,27 @@ const api = axios.create({
 
 // Intercepteur pour ajouter le token d'authentification
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token'); // ou récupérer depuis Supabase
+  const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
+// Service pour les annonces
 export const listingService = {
+  // Créer une nouvelle annonce
   async createListing(listing: CreateListingDTO): Promise<Listing> {
     try {
       const response = await api.post('/listings', listing);
+      toast.success("Annonce créée avec succès");
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
         toast.error("Veuillez vous connecter pour créer une annonce");
       } else {
         toast.error("Erreur lors de la création de l'annonce");
+        console.error("Erreur création annonce:", error);
       }
       throw error;
     }

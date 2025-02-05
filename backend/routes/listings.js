@@ -1,3 +1,4 @@
+
 const express = require('express');
 const router = express.Router();
 const Listing = require('../models/Listing');
@@ -27,6 +28,7 @@ router.post('/', auth, async (req, res) => {
     await listing.save();
     res.status(201).json(listing);
   } catch (error) {
+    console.error("Erreur création annonce:", error);
     res.status(400).json({ message: error.message });
   }
 });
