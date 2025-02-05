@@ -1,3 +1,4 @@
+
 const mongoose = require('mongoose');
 
 const listingSchema = new mongoose.Schema({
@@ -36,9 +37,15 @@ const listingSchema = new mongoose.Schema({
   isSold: {
     type: Boolean,
     default: false
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
-}, {
-  timestamps: true
 });
 
 module.exports = mongoose.model('Listing', listingSchema);

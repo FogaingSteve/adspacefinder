@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const Listing = require('../models/Listing');
@@ -21,12 +20,19 @@ const upload = multer({ storage: storage });
 // Créer une nouvelle annonce (protégée)
 router.post('/', auth, async (req, res) => {
   try {
+    console.log("Données reçues:", req.body);
+    console.log("ID utilisateur:", req.userId);
+
     const listing = new Listing({
       ...req.body,
-      userId: req.userId // Ajout automatique de l'ID de l'utilisateur
+      userId: req.userId,
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
-    await listing.save();
-    res.status(201).json(listing);
+
+    const savedListing = await listing.save();
+    console.log("Annonce sauvegardée:", savedListing);
+    res.status(201).json(savedListing);
   } catch (error) {
     console.error("Erreur création annonce:", error);
     res.status(400).json({ message: error.message });
@@ -36,12 +42,17 @@ router.post('/', auth, async (req, res) => {
 // Récupérer toutes les annonces récentes
 router.get('/recent', async (req, res) => {
   try {
+    console.log("Récupération des annonces récentes");
     const listings = await Listing.find()
       .sort({ createdAt: -1 })
-      .limit(10);
+      .limit(10)
+      .exec();
+    
+    console.log("Annonces récentes trouvées:", listings.length);
     res.json(listings);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Erreur récupération annonces récentes:", error);
+    res.status(500).json({ message: "Erreur lors de la récupération des annonces récentes" });
   }
 });
 
