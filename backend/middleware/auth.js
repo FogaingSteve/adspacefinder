@@ -2,8 +2,8 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
-  process.env.SUPABASE_URL || 'your-project-url',
-  process.env.SUPABASE_SERVICE_KEY || 'your-service-key'
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
 );
 
 const auth = async (req, res, next) => {
@@ -17,11 +17,16 @@ const auth = async (req, res, next) => {
     // Vérifier le token Supabase
     const { data: { user }, error } = await supabase.auth.getUser(token);
     
-    if (error || !user) {
+    if (error) {
+      console.error("Erreur Supabase:", error);
       throw new Error('Token invalide');
     }
 
-    req.userId = user.id; // Ajouter l'ID de l'utilisateur à la requête
+    if (!user) {
+      throw new Error('Utilisateur non trouvé');
+    }
+
+    req.userId = user.id;
     next();
   } catch (error) {
     console.log("Erreur d'authentification:", error);

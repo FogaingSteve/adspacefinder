@@ -16,6 +16,9 @@ api.interceptors.request.use(async (config) => {
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.access_token) {
     config.headers.Authorization = `Bearer ${session.access_token}`;
+  } else {
+    toast.error("Veuillez vous connecter");
+    return Promise.reject("Non authentifié");
   }
   return config;
 });
@@ -25,6 +28,7 @@ export const listingService = {
   // Créer une nouvelle annonce
   async createListing(listing: CreateListingDTO): Promise<Listing> {
     try {
+      console.log("Session:", await supabase.auth.getSession());
       const response = await api.post('/listings', listing);
       toast.success("Annonce créée avec succès");
       return response.data;
