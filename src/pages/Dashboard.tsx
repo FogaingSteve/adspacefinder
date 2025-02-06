@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useUserListings, useDeleteListing, useMarkListingAsSold } from "@/hooks/useListings";
+import { useUserListings, useDeleteListing, useMarkListingAsSold, useFavorites } from "@/hooks/useListings";
 import { Link, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -27,6 +27,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: userListings, isLoading: listingsLoading } = useUserListings(user?.id || "");
+  const { data: favorites, isLoading: favoritesLoading } = useFavorites(user?.id || "");
   const deleteListing = useDeleteListing();
   const markAsSold = useMarkListingAsSold();
 
