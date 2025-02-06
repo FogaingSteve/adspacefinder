@@ -1,15 +1,15 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-if (!import.meta.env.VITE_SUPABASE_URL) {
-  throw new Error('VITE_SUPABASE_URL is not defined')
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || supabaseUrl === 'https://your-project-id.supabase.co') {
+  throw new Error('Please set a valid VITE_SUPABASE_URL in your .env file')
 }
 
-if (!import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  throw new Error('VITE_SUPABASE_ANON_KEY is not defined')
+if (!supabaseAnonKey || supabaseAnonKey === 'your-anon-key') {
+  throw new Error('Please set a valid VITE_SUPABASE_ANON_KEY in your .env file')
 }
 
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
