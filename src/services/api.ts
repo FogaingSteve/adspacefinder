@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
@@ -84,11 +83,14 @@ export const listingService = {
 
   async getUserListings(userId: string): Promise<Listing[]> {
     try {
+      console.log("Récupération des annonces pour userId:", userId);
       const response = await axios.get(`${API_URL}/listings/user/${userId}`);
+      console.log("Annonces reçues:", response.data);
       return response.data;
     } catch (error) {
       console.error("Erreur récupération annonces utilisateur:", error);
-      throw new Error("Erreur lors de la récupération des annonces de l'utilisateur");
+      toast.error("Erreur lors de la récupération de vos annonces");
+      throw error;
     }
   },
 

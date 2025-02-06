@@ -17,6 +17,20 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+// Récupérer les annonces d'un utilisateur spécifique
+router.get('/user/:userId', async (req, res) => {
+  try {
+    console.log("Récupération des annonces pour l'utilisateur:", req.params.userId);
+    const listings = await Listing.find({ userId: req.params.userId })
+      .sort({ createdAt: -1 });
+    console.log("Annonces trouvées:", listings.length);
+    res.json(listings);
+  } catch (error) {
+    console.error("Erreur récupération annonces utilisateur:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Créer une nouvelle annonce (protégée)
 router.post('/', auth, async (req, res) => {
   try {
