@@ -1,6 +1,7 @@
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Phone, Facebook, Mail, MessageSquare } from "lucide-react";
+import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useState } from "react";
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Carousel,
   CarouselContent,
@@ -21,30 +26,26 @@ import {
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
   const [showPhoneNumber, setShowPhoneNumber] = useState(false);
+  const { id } = useParams();
 
-  // This would normally come from an API or route params
-  const listing = {
-    id: 1,
-    title: "Appartement 3 pièces",
-    description: "Bel appartement lumineux au cœur de Paris, proche des transports et commerces. Cuisine équipée, salle de bain rénovée, parquet au sol.",
-    price: "250,000 €",
-    location: "Paris 11ème",
-    images: [
-      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=80",
-      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=500&q=80",
-      "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=500&q=80",
-    ],
-    seller: {
-      name: "Jean Dupont",
-      phone: "+33 6 12 34 56 78",
-      email: "jean.dupont@email.com"
+  const { data: listing, isLoading } = useQuery({
+    queryKey: ['listing', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('listings')
+        .select('*, profiles:users(full_name, email, phone)')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
     },
-    createdAt: "2024-02-20"
-  };
+    enabled: !!id
+  });
 
   const handleShare = (platform: string) => {
     const url = window.location.href;
-    const text = `Découvrez cette annonce : ${listing.title} - ${listing.price}`;
+    const text = listing ? `Découvrez cette annonce : ${listing.title} - ${listing.price}€` : '';
     
     const shareUrls = {
       whatsapp: `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`,
@@ -55,6 +56,38 @@ const ListingDetail = () => {
     window.open(shareUrls[platform as keyof typeof shareUrls], "_blank");
   };
 
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2">
+            <Skeleton className="w-full h-[400px] rounded-lg" />
+            <div className="mt-6 space-y-4">
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-6 w-1/4" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          </div>
+          <div>
+            <Skeleton className="h-[200px] w-full rounded-lg" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!listing) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert>
+          <AlertDescription>
+            Cette annonce n'existe pas ou a été supprimée.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -62,7 +95,7 @@ const ListingDetail = () => {
         <div className="md:col-span-2 space-y-6">
           <Carousel className="w-full">
             <CarouselContent>
-              {listing.images.map((image, index) => (
+              {listing.images.map((image: string, index: number) => (
                 <CarouselItem key={index}>
                   <div className="aspect-video relative overflow-hidden rounded-lg">
                     <img
@@ -81,7 +114,12 @@ const ListingDetail = () => {
           <Card>
             <CardHeader>
               <h1 className="text-2xl font-bold">{listing.title}</h1>
-              <p className="text-2xl font-bold text-primary">{listing.price}</p>
+              <p className="text-2xl font-bold text-primary">{listing.price} €</p>
+              {listing.isSold && (
+                <span className="bg-red-500 text-white px-2 py-1 rounded text-sm">
+                  Vendu
+                </span>
+              )}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -91,12 +129,15 @@ const ListingDetail = () => {
                 </div>
                 <div>
                   <h2 className="font-semibold mb-2">Localisation</h2>
-                  <p className="text-gray-600">{listing.location}</p>
+                  <p className="text-gray-600 flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    {listing.location}
+                  </p>
                 </div>
                 <div>
                   <h2 className="font-semibold mb-2">Date de publication</h2>
                   <p className="text-gray-600">
-                    {new Date(listing.createdAt).toLocaleDateString("fr-FR", {
+                    {new Date(listing.created_at).toLocaleDateString("fr-FR", {
                       year: "numeric",
                       month: "long",
                       day: "numeric"
@@ -117,17 +158,19 @@ const ListingDetail = () => {
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <p className="font-medium">{listing.seller.name}</p>
-                  <p className="text-gray-600">{listing.seller.email}</p>
+                  <p className="font-medium">{listing.profiles?.full_name}</p>
+                  <p className="text-gray-600">{listing.profiles?.email}</p>
                 </div>
                 <div className="flex flex-col gap-3">
-                  <Button 
-                    className="w-full"
-                    onClick={() => setShowSafetyDialog(true)}
-                  >
-                    <Phone className="mr-2" />
-                    {showPhoneNumber ? listing.seller.phone : "Afficher le numéro"}
-                  </Button>
+                  {listing.profiles?.phone && (
+                    <Button 
+                      className="w-full"
+                      onClick={() => setShowSafetyDialog(true)}
+                    >
+                      <Phone className="mr-2" />
+                      {showPhoneNumber ? listing.profiles.phone : "Afficher le numéro"}
+                    </Button>
+                  )}
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 
