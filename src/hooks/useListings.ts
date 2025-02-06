@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingService } from "@/services/api";
 import { CreateListingDTO, Listing } from "@/types/listing";
@@ -72,13 +71,6 @@ export const useUserListings = (userId: string) => {
     queryKey: ['userListings', userId],
     queryFn: () => listingService.getUserListings(userId),
     enabled: !!userId,
-    retry: 1,
-    meta: {
-      onError: (error: Error) => {
-        console.error("Erreur lors de la récupération des annonces:", error);
-        toast.error("Impossible de charger vos annonces");
-      }
-    }
   });
 };
 
@@ -126,4 +118,3 @@ export const useFavorites = (userId: string) => {
     enabled: !!userId,
   });
 };
-

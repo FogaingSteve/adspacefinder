@@ -2,20 +2,33 @@
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MessageSquare, Eye, Heart, Search } from "lucide-react";
+import { Package, MessageSquare, Eye, Heart, Search, Edit, Trash2, CheckCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useUserListings, useFavorites } from "@/hooks/useListings";
-import { Link } from "react-router-dom";
+import { useUserListings, useDeleteListing, useMarkListingAsSold } from "@/hooks/useListings";
+import { Link, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [listingToDelete, setListingToDelete] = useState<string | null>(null);
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: userListings, isLoading: listingsLoading } = useUserListings(user?.id || "");
-  const { data: favorites, isLoading: favoritesLoading } = useFavorites(user?.id || "");
+  const deleteListing = useDeleteListing();
+  const markAsSold = useMarkListingAsSold();
 
   const stats = [
     {
@@ -38,6 +51,15 @@ export default function Dashboard() {
   const filteredListings = userListings?.filter(listing =>
     listing.title.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
+
+  const handleDelete = async (id: string) => {
+    await deleteListing.mutateAsync(id);
+    setListingToDelete(null);
+  };
+
+  const handleMarkAsSold = async (id: string) => {
+    await markAsSold.mutateAsync(id);
+  };
 
   const EmptyState = () => (
     <div className="text-center py-12">
@@ -145,13 +167,42 @@ export default function Dashboard() {
                             </span>
                           </div>
                         </div>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          listing.isSold
-                            ? "bg-red-100 text-red-800"
-                            : "bg-green-100 text-green-800"
-                        }`}>
-                          {listing.isSold ? "Vendu" : "Active"}
-                        </span>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/listings/${listing.id}`)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Voir
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/listings/${listing.id}/edit`)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Modifier
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleMarkAsSold(listing.id)}
+                            disabled={listing.isSold}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            {listing.isSold ? "Vendu" : "Marquer vendu"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setListingToDelete(listing.id)}
+                            className="text-red-500 hover:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Supprimer
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -217,6 +268,26 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <AlertDialog open={!!listingToDelete} onOpenChange={() => setListingToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. L'annonce sera définitivement supprimée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => listingToDelete && handleDelete(listingToDelete)}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
