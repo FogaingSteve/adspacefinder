@@ -1,3 +1,4 @@
+
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -192,7 +193,7 @@ export default function Dashboard() {
                         <div>
                           <h3 className="font-medium">{favorite.title}</h3>
                           <p className="text-primary font-bold mt-1">
-                            {favorite.price} CFA
+                            {favorite.price} €
                           </p>
                           <p className="text-sm text-gray-500 mt-1">
                             {new Date(favorite.createdAt || "").toLocaleDateString()}
