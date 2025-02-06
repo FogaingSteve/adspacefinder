@@ -31,6 +31,8 @@ const ListingDetail = () => {
   const { data: listing, isLoading } = useQuery({
     queryKey: ['listing', id],
     queryFn: async () => {
+      if (!id) throw new Error('No listing ID provided');
+      
       const { data, error } = await supabase
         .from('listings')
         .select('*, profiles:users(full_name, email, phone)')
@@ -40,7 +42,7 @@ const ListingDetail = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!id
+    enabled: !!id // Only run the query if we have an ID
   });
 
   const handleShare = (platform: string) => {
@@ -55,6 +57,18 @@ const ListingDetail = () => {
 
     window.open(shareUrls[platform as keyof typeof shareUrls], "_blank");
   };
+
+  if (!id) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert>
+          <AlertDescription>
+            Aucun identifiant d'annonce n'a été fourni.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
