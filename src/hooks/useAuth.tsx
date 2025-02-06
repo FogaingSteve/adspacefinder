@@ -10,6 +10,8 @@ interface User {
     name?: string;
     avatar_url?: string;
     is_admin?: boolean;
+    phone?: string;
+    address?: string;
   };
 }
 
@@ -20,7 +22,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  updateProfile: (data: { name?: string; avatar_url?: string }) => Promise<void>;
+  updateProfile: (data: { name?: string; avatar_url?: string; phone?: string; address?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -142,7 +144,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  const updateProfile = async (data: { name?: string; avatar_url?: string }) => {
+  const updateProfile = async (data: { name?: string; avatar_url?: string; phone?: string; address?: string }) => {
     try {
       const { error } = await supabase.auth.updateUser({
         data: data

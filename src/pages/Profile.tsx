@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export default function Profile() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, resetPassword } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.user_metadata?.name || "",
@@ -191,9 +190,8 @@ export default function Profile() {
                   variant="outline" 
                   className="w-full"
                   onClick={() => {
-                    const { error } = supabase.auth.resetPasswordForEmail(user?.email || "");
-                    if (!error) {
-                      toast.success("Instructions envoyées par email");
+                    if (user?.email) {
+                      resetPassword(user.email);
                     }
                   }}
                 >
