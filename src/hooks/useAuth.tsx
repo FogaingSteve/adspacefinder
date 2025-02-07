@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
@@ -146,10 +147,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateProfile = async (data: { name?: string; avatar_url?: string; phone?: string; address?: string }) => {
     try {
-      const { error } = await supabase.auth.updateUser({
+      // Mise à jour des métadonnées de l'utilisateur dans Auth
+      const { error: authError } = await supabase.auth.updateUser({
         data: data
       })
-      if (error) throw error
+      if (authError) throw authError
+
+      // Mise à jour des informations dans la table users
+      if (user?.id) {
+        const { error: dbError } = await supabase
+          .from('users')
+          .update({
+            full_name: data.name,
+            avatar_url: data.avatar_url,
+            phone: data.phone,
+            address: data.address,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id)
+
+        if (dbError) throw dbError
+      }
       
       if (user) {
         const updatedUser = {
@@ -166,6 +184,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       toast.success('Profil mis à jour avec succès')
     } catch (error: any) {
       toast.error(error.message)
+      console.error('Erreur mise à jour profil:', error)
     }
   }
 
