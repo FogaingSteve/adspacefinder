@@ -15,6 +15,7 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
+import axios from "axios";
 import {
   Carousel,
   CarouselContent,
@@ -28,22 +29,36 @@ const ListingDetail = () => {
   const [showPhoneNumber, setShowPhoneNumber] = useState(false);
   const { id } = useParams();
 
-  const { data: listing, isLoading } = useQuery({
+  // Requête pour obtenir l'annonce depuis MongoDB via l'API
+  const { data: listing, isLoading: isListingLoading } = useQuery({
     queryKey: ['listing', id],
     queryFn: async () => {
       if (!id) throw new Error('No listing ID provided');
+      const response = await axios.get(`http://localhost:5000/api/listings/${id}`);
+      return response.data;
+    },
+    enabled: !!id
+  });
+
+  // Requête pour obtenir les données de l'utilisateur depuis Supabase
+  const { data: userData, isLoading: isUserLoading } = useQuery({
+    queryKey: ['user', listing?.userId],
+    queryFn: async () => {
+      if (!listing?.userId) throw new Error('No user ID provided');
       
       const { data, error } = await supabase
-        .from('listings')
-        .select('*, profiles:users(full_name, email, phone)')
-        .eq('id', id)
+        .from('users')
+        .select('full_name, email, phone')
+        .eq('id', listing.userId)
         .single();
 
       if (error) throw error;
       return data;
     },
-    enabled: !!id // Only run the query if we have an ID
+    enabled: !!listing?.userId
   });
+
+  const isLoading = isListingLoading || isUserLoading;
 
   const handleShare = (platform: string) => {
     const url = window.location.href;
@@ -90,7 +105,7 @@ const ListingDetail = () => {
     );
   }
 
-  if (!listing) {
+  if (!listing || !userData) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert>
@@ -151,7 +166,7 @@ const ListingDetail = () => {
                 <div>
                   <h2 className="font-semibold mb-2">Date de publication</h2>
                   <p className="text-gray-600">
-                    {new Date(listing.created_at).toLocaleDateString("fr-FR", {
+                    {new Date(listing.createdAt).toLocaleDateString("fr-FR", {
                       year: "numeric",
                       month: "long",
                       day: "numeric"
@@ -172,17 +187,17 @@ const ListingDetail = () => {
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <p className="font-medium">{listing.profiles?.full_name}</p>
-                  <p className="text-gray-600">{listing.profiles?.email}</p>
+                  <p className="font-medium">{userData.full_name}</p>
+                  <p className="text-gray-600">{userData.email}</p>
                 </div>
                 <div className="flex flex-col gap-3">
-                  {listing.profiles?.phone && (
+                  {userData.phone && (
                     <Button 
                       className="w-full"
                       onClick={() => setShowSafetyDialog(true)}
                     >
                       <Phone className="mr-2" />
-                      {showPhoneNumber ? listing.profiles.phone : "Afficher le numéro"}
+                      {showPhoneNumber ? userData.phone : "Afficher le numéro"}
                     </Button>
                   )}
                   <div className="flex gap-2">
@@ -249,3 +264,4 @@ const ListingDetail = () => {
 };
 
 export default ListingDetail;
+
