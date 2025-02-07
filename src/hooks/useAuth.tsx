@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
@@ -147,43 +146,51 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateProfile = async (data: { name?: string; avatar_url?: string; phone?: string; address?: string }) => {
     try {
-      // Mise à jour des métadonnées de l'utilisateur dans Auth
+      if (!user?.id) {
+        throw new Error('User not authenticated')
+      }
+
+      // Update user metadata in auth
       const { error: authError } = await supabase.auth.updateUser({
-        data: data
+        data: {
+          name: data.name,
+          avatar_url: data.avatar_url,
+          phone: data.phone,
+          address: data.address
+        }
       })
       if (authError) throw authError
 
-      // Mise à jour des informations dans la table users
-      if (user?.id) {
-        const { error: dbError } = await supabase
-          .from('users')
-          .update({
-            full_name: data.name,
-            avatar_url: data.avatar_url,
-            phone: data.phone,
-            address: data.address,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id)
+      // Update user data in the users table
+      const { error: dbError } = await supabase
+        .from('users')
+        .upsert({
+          id: user.id,
+          full_name: data.name,
+          avatar_url: data.avatar_url,
+          phone: data.phone,
+          address: data.address,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'id'
+        })
 
-        if (dbError) throw dbError
-      }
+      if (dbError) throw dbError
       
-      if (user) {
-        const updatedUser = {
-          ...user,
-          user_metadata: {
-            ...user.user_metadata,
-            ...data
-          }
+      // Update local user state
+      const updatedUser = {
+        ...user,
+        user_metadata: {
+          ...user.user_metadata,
+          ...data
         }
-        setUser(updatedUser)
-        localStorage.setItem('userSession', JSON.stringify(updatedUser))
       }
+      setUser(updatedUser)
+      localStorage.setItem('userSession', JSON.stringify(updatedUser))
       
       toast.success('Profil mis à jour avec succès')
     } catch (error: any) {
-      toast.error(error.message)
+      toast.error(error.message || 'Erreur lors de la mise à jour du profil')
       console.error('Erreur mise à jour profil:', error)
     }
   }
