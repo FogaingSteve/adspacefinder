@@ -33,18 +33,29 @@ const ListingDetail = () => {
   const { data: listing, isLoading: isListingLoading } = useQuery({
     queryKey: ['listing', id],
     queryFn: async () => {
-      if (!id) throw new Error('No listing ID provided');
+      if (!id) {
+        throw new Error('No listing ID provided');
+      }
+      
       const response = await axios.get(`http://localhost:5000/api/listings/${id}`);
+      
+      if (!response.data) {
+        throw new Error('Listing not found');
+      }
+      
       return response.data;
     },
-    enabled: !!id
+    enabled: !!id,
+    retry: false
   });
 
   // Requête pour obtenir les données de l'utilisateur depuis Supabase
   const { data: userData, isLoading: isUserLoading } = useQuery({
     queryKey: ['user', listing?.userId],
     queryFn: async () => {
-      if (!listing?.userId) throw new Error('No user ID provided');
+      if (!listing?.userId) {
+        throw new Error('No user ID provided');
+      }
       
       const { data, error } = await supabase
         .from('users')
@@ -55,7 +66,8 @@ const ListingDetail = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!listing?.userId
+    enabled: !!listing?.userId,
+    retry: false
   });
 
   const isLoading = isListingLoading || isUserLoading;
@@ -264,4 +276,3 @@ const ListingDetail = () => {
 };
 
 export default ListingDetail;
-
