@@ -1,3 +1,4 @@
+
 const express = require('express');
 const router = express.Router();
 const Listing = require('../models/Listing');
@@ -16,6 +17,42 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage });
+
+// Récupérer une annonce par ID
+router.get('/:id', async (req, res) => {
+  try {
+    console.log("Recherche de l'annonce par ID:", req.params.id);
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) {
+      return res.status(404).json({ message: "Annonce non trouvée" });
+    }
+    res.json(listing);
+  } catch (error) {
+    console.error("Erreur récupération annonce par ID:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Récupérer une annonce par titre (utilisée pour la route avec titre dans l'URL)
+router.get('/title/:title', async (req, res) => {
+  try {
+    console.log("Recherche de l'annonce par titre:", req.params.title);
+    // Rechercher l'annonce où le titre est égal au paramètre title
+    // ou utiliser une regex pour une recherche partielle selon vos besoins
+    const listing = await Listing.findOne({
+      title: { $regex: new RegExp(req.params.title, 'i') }
+    });
+    
+    if (!listing) {
+      return res.status(404).json({ message: "Annonce non trouvée" });
+    }
+    
+    res.json(listing);
+  } catch (error) {
+    console.error("Erreur récupération annonce par titre:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
 
 // Récupérer les annonces d'un utilisateur spécifique
 router.get('/user/:userId', async (req, res) => {

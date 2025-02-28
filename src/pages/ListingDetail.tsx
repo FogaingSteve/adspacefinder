@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,25 +27,35 @@ import {
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
   const [showPhoneNumber, setShowPhoneNumber] = useState(false);
-  const { id } = useParams();
+  const { id, title, category } = useParams();
+  const location = useLocation();
 
+  // Déterminer si nous utilisons l'ID ou le titre pour récupérer l'annonce
+  const fetchByTitle = location.pathname.includes('/categories/');
+  
   // Requête pour obtenir l'annonce depuis MongoDB via l'API
   const { data: listing, isLoading: isListingLoading } = useQuery({
-    queryKey: ['listing', id],
+    queryKey: ['listing', fetchByTitle ? title : id],
     queryFn: async () => {
-      if (!id) {
-        throw new Error('No listing ID provided');
+      if (fetchByTitle && title) {
+        // Récupérer par titre
+        const response = await axios.get(`http://localhost:5000/api/listings/title/${encodeURIComponent(title)}`);
+        if (!response.data) {
+          throw new Error('Annonce non trouvée');
+        }
+        return response.data;
+      } else if (id) {
+        // Récupérer par ID
+        const response = await axios.get(`http://localhost:5000/api/listings/${id}`);
+        if (!response.data) {
+          throw new Error('Annonce non trouvée');
+        }
+        return response.data;
+      } else {
+        throw new Error('Aucun identifiant ou titre fourni');
       }
-      
-      const response = await axios.get(`http://localhost:5000/api/listings/${id}`);
-      
-      if (!response.data) {
-        throw new Error('Listing not found');
-      }
-      
-      return response.data;
     },
-    enabled: !!id,
+    enabled: !!(fetchByTitle ? title : id),
     retry: false
   });
 
@@ -85,7 +95,12 @@ const ListingDetail = () => {
     window.open(shareUrls[platform as keyof typeof shareUrls], "_blank");
   };
 
-  if (!id) {
+  // Rediriger si nous sommes sur /listings/undefined
+  if (id === 'undefined' && !fetchByTitle) {
+    return <Navigate to="/" replace />;
+  }
+
+  if ((!id && !title) || (id === 'undefined' && !title)) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert>

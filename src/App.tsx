@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -17,6 +18,7 @@ import SignIn from "@/pages/auth/SignIn";
 import SignUp from "@/pages/auth/SignUp";
 import CategoryPage from "@/pages/CategoryPage";
 import SubcategoryPage from "@/pages/SubcategoryPage";
+import ListingDetail from "@/pages/ListingDetail";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +34,8 @@ function App() {
               <Route path="/listings/create" element={<CreateListing />} />
               <Route path="/listings/my-searches" element={<MySearches />} />
               <Route path="/listings/favorites" element={<Favorites />} />
+              <Route path="/listings/:id" element={<ListingDetail />} />
+              <Route path="/listings/categories/:category/:title" element={<ListingDetail />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/dashboard" element={<Dashboard />} />
