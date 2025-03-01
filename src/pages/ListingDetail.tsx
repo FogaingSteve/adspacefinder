@@ -35,28 +35,58 @@ const ListingDetail = () => {
   
   // Requête pour obtenir l'annonce depuis MongoDB via l'API
   const { data: listing, isLoading: isListingLoading } = useQuery({
-    queryKey: ['listing', fetchByTitle ? title : id],
+    queryKey: ['listing', fetchByTitle ? title : id, category],
     queryFn: async () => {
-      if (fetchByTitle && title) {
-        // Récupérer par titre
-        const response = await axios.get(`http://localhost:5000/api/listings/title/${encodeURIComponent(title)}`);
-        if (!response.data) {
-          throw new Error('Annonce non trouvée');
+      try {
+        if (fetchByTitle && title) {
+          // Décodez le titre s'il est encodé dans l'URL
+          const decodedTitle = decodeURIComponent(title);
+          console.log("Fetching by title:", decodedTitle, "and category:", category);
+          
+          // Si la catégorie est disponible, l'utiliser pour la requête
+          if (category) {
+            const response = await axios.get(`http://localhost:5000/api/listings/search`, {
+              params: { 
+                q: decodedTitle,
+                category: category
+              }
+            });
+            
+            if (response.data && response.data.length > 0) {
+              // Retourner le premier résultat qui correspond au titre exact
+              const exactMatch = response.data.find((item: any) => 
+                item.title.toLowerCase() === decodedTitle.toLowerCase()
+              );
+              
+              return exactMatch || response.data[0];
+            }
+            throw new Error('Annonce non trouvée');
+          } else {
+            // Recherche uniquement par titre si la catégorie n'est pas spécifiée
+            const response = await axios.get(`http://localhost:5000/api/listings/title/${encodeURIComponent(decodedTitle)}`);
+            if (!response.data) {
+              throw new Error('Annonce non trouvée');
+            }
+            return response.data;
+          }
+        } else if (id) {
+          // Récupérer par ID
+          console.log("Fetching by ID:", id);
+          const response = await axios.get(`http://localhost:5000/api/listings/${id}`);
+          if (!response.data) {
+            throw new Error('Annonce non trouvée');
+          }
+          return response.data;
+        } else {
+          throw new Error('Aucun identifiant ou titre fourni');
         }
-        return response.data;
-      } else if (id) {
-        // Récupérer par ID
-        const response = await axios.get(`http://localhost:5000/api/listings/${id}`);
-        if (!response.data) {
-          throw new Error('Annonce non trouvée');
-        }
-        return response.data;
-      } else {
-        throw new Error('Aucun identifiant ou titre fourni');
+      } catch (error) {
+        console.error("Error fetching listing:", error);
+        throw error;
       }
     },
     enabled: !!(fetchByTitle ? title : id),
-    retry: false
+    retry: 1
   });
 
   // Requête pour obtenir les données de l'utilisateur depuis Supabase
@@ -151,13 +181,18 @@ const ListingDetail = () => {
         <div className="md:col-span-2 space-y-6">
           <Carousel className="w-full">
             <CarouselContent>
-              {listing.images.map((image: string, index: number) => (
+              {listing.images && listing.images.map((image: string, index: number) => (
                 <CarouselItem key={index}>
                   <div className="aspect-video relative overflow-hidden rounded-lg">
                     <img
                       src={image}
                       alt={`${listing.title} - Image ${index + 1}`}
                       className="object-cover w-full h-full"
+                      onError={(e) => {
+                        // Fallback for broken images
+                        const target = e.target as HTMLImageElement;
+                        target.src = "https://via.placeholder.com/400x300?text=Image+non+disponible";
+                      }}
                     />
                   </div>
                 </CarouselItem>

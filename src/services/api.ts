@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
@@ -110,13 +109,27 @@ export const listingService = {
     }
   },
 
-  async searchListings(query: string): Promise<Listing[]> {
+  async searchListings(query: string, category?: string): Promise<Listing[]> {
     try {
-      const response = await axios.get(`${API_URL}/listings/search`, { params: { q: query } });
+      const params: any = { q: query };
+      if (category) {
+        params.category = category;
+      }
+      const response = await axios.get(`${API_URL}/listings/search`, { params });
       return response.data;
     } catch (error) {
       console.error("Erreur recherche annonces:", error);
       throw new Error("Erreur lors de la recherche d'annonces");
+    }
+  },
+
+  async getListingByTitle(title: string): Promise<Listing> {
+    try {
+      const response = await axios.get(`${API_URL}/listings/title/${encodeURIComponent(title)}`);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur récupération annonce par titre:", error);
+      throw new Error("Erreur lors de la récupération de l'annonce par titre");
     }
   },
 
@@ -187,4 +200,3 @@ export const categoryService = {
     }
   }
 };
-
