@@ -1,6 +1,8 @@
+
 import { Car, Smartphone, Shirt, Home, Microwave, Armchair, Briefcase, Handshake, Baby, Trophy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { categoryService } from "@/services/api";
 
 export const categoryIcons = {
   "vehicules": Car,
@@ -15,7 +17,8 @@ export const categoryIcons = {
   "sports": Trophy
 };
 
-export const topCategories = [
+// Données statiques pour fallback
+export const topCategoriesStatic = [
   { icon: Car, name: "Véhicules", link: "/categories/vehicules" },
   { icon: Smartphone, name: "Electronique", link: "/categories/electronique" },
   { icon: Shirt, name: "Mode & Beauté", link: "/categories/mode" },
@@ -33,8 +36,7 @@ export const useCategories = () => {
     queryKey: ['categories'],
     queryFn: async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/categories');
-        return response.data;
+        return await categoryService.getCategories();
       } catch (error) {
         console.error("Failed to fetch categories:", error);
         return [];

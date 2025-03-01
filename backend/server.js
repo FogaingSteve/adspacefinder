@@ -3,37 +3,34 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const listingsRoutes = require('./routes/listings');
+const categoriesRoutes = require('./routes/categories');
+require('dotenv').config();
 
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+
+// Connexion à MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('Connecté à MongoDB'))
+  .catch(err => console.error('Erreur de connexion à MongoDB:', err));
 
 // Routes
 app.use('/api/listings', listingsRoutes);
+app.use('/api/categories', categoriesRoutes);
 
-// Connexion MongoDB avec plus de logs
-mongoose.connect('mongodb://localhost:27017/classifieds', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => {
-  console.log('✅ Connecté à MongoDB avec succès');
-})
-.catch(err => {
-  console.error('❌ Erreur de connexion à MongoDB:', err);
-  process.exit(1);
+// Route pour les villes
+app.get('/api/cities', (req, res) => {
+  const cities = ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda", "Kribi"];
+  res.json(cities);
 });
 
-// Log les erreurs MongoDB
-mongoose.connection.on('error', err => {
-  console.error('Erreur MongoDB:', err);
+// Route pour tester le serveur
+app.get('/', (req, res) => {
+  res.send('API fonctionne');
 });
 
-// Démarrage du serveur
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`✅ Serveur démarré sur le port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));

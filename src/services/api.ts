@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
@@ -16,6 +17,11 @@ api.interceptors.request.use(async (config) => {
   if (session?.access_token) {
     config.headers.Authorization = `Bearer ${session.access_token}`;
   } else {
+    // Pour les routes qui ne nécessitent pas d'authentification, 
+    // ne pas rejeter la promesse
+    if (config.url?.includes('/categories') || config.url?.includes('/listings/recent')) {
+      return config;
+    }
     toast.error("Veuillez vous connecter");
     return Promise.reject("Non authentifié");
   }
@@ -145,3 +151,40 @@ export const listingService = {
     }
   }
 };
+
+// Service pour les catégories
+export const categoryService = {
+  // Récupérer toutes les catégories
+  async getCategories() {
+    try {
+      const response = await axios.get(`${API_URL}/categories`);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur récupération catégories:", error);
+      throw error;
+    }
+  },
+
+  // Récupérer une catégorie par son ID
+  async getCategory(categoryId: string) {
+    try {
+      const response = await axios.get(`${API_URL}/categories/${categoryId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Erreur récupération catégorie ${categoryId}:`, error);
+      throw error;
+    }
+  },
+
+  // Récupérer une sous-catégorie
+  async getSubcategory(categoryId: string, subcategoryId: string) {
+    try {
+      const response = await axios.get(`${API_URL}/categories/${categoryId}/${subcategoryId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Erreur récupération sous-catégorie ${subcategoryId}:`, error);
+      throw error;
+    }
+  }
+};
+

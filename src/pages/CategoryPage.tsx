@@ -2,10 +2,10 @@
 import { useParams } from "react-router-dom";
 import { CategoryListings } from "@/components/CategoryListings";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import { Skeleton } from "@/components/ui/skeleton";
 import { categoryIcons } from "@/data/topCategories";
 import { Link } from "react-router-dom";
+import { categoryService } from "@/services/api";
 
 const CategoryPage = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
@@ -15,8 +15,7 @@ const CategoryPage = () => {
     queryKey: ['category', categoryId],
     queryFn: async () => {
       if (!categoryId) return null;
-      const response = await axios.get(`http://localhost:5000/api/categories/${categoryId}`);
-      return response.data;
+      return await categoryService.getCategory(categoryId);
     },
     enabled: !!categoryId
   });
