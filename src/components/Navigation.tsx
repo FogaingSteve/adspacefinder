@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Bell, Heart, MessageSquare, User, Plus, Settings, LayoutDashboard, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { categories } from "@/data/categories";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,11 +20,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useCategories } from "@/data/topCategories";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const { user, signOut } = useAuth();
+  
+  // Fetch categories from MongoDB
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
 
   const handleLogout = async () => {
     await signOut();
@@ -141,38 +145,46 @@ export const Navigation = () => {
         </div>
 
         {/* Categories bar with dropdowns */}
-        <div className="hidden md:flex items-center space-x-6 py-2 text-sm border-t">
-          {categories.map((category) => (
-            <DropdownMenu key={category.id}>
-              <DropdownMenuTrigger className="text-gray-600 hover:text-[#FF6E14] focus:outline-none">
-                {category.name}
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-white">
-                <DropdownMenuItem asChild>
-                  <Link 
-                    to={`/categories/${category.id}`}
-                    className="flex items-center justify-between w-full font-semibold"
-                  >
-                    Voir toute la catégorie
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {category.subcategories.map((subcategory) => (
-                  <DropdownMenuItem key={subcategory.id} asChild>
+        <div className="hidden md:flex items-center space-x-6 py-2 text-sm border-t overflow-x-auto">
+          {categoriesLoading ? (
+            // Show loading skeletons while categories load
+            Array(6).fill(0).map((_, i) => (
+              <Skeleton key={i} className="h-6 w-24" />
+            ))
+          ) : (
+            // Show actual categories when loaded
+            categories && categories.map((category: any) => (
+              <DropdownMenu key={category._id}>
+                <DropdownMenuTrigger className="text-gray-600 hover:text-[#FF6E14] focus:outline-none">
+                  {category.name}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-white">
+                  <DropdownMenuItem asChild>
                     <Link 
-                      to={`/categories/${category.id}/${subcategory.id}`}
-                      className="flex items-center justify-between w-full"
+                      to={`/categories/${category.id}`}
+                      className="flex items-center justify-between w-full font-semibold"
                     >
-                      {subcategory.name}
-                      <span className="text-xs text-gray-500">
-                        12 annonces
-                      </span>
+                      Voir toute la catégorie
                     </Link>
                   </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ))}
+                  <DropdownMenuSeparator />
+                  {category.subcategories.map((subcategory: any) => (
+                    <DropdownMenuItem key={subcategory.id} asChild>
+                      <Link 
+                        to={`/categories/${category.id}/${subcategory.id}`}
+                        className="flex items-center justify-between w-full"
+                      >
+                        {subcategory.name}
+                        <span className="text-xs text-gray-500">
+                          {subcategory.count || 0} annonces
+                        </span>
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ))
+          )}
         </div>
 
         {/* Mobile menu */}

@@ -1,29 +1,10 @@
+
 import { Link } from "react-router-dom";
 import { MapPin } from "lucide-react";
 import { Button } from "./ui/button";
-import { categories } from "@/data/categories";
-
-// Fonction helper pour générer des annonces fictives
-const generateMockListings = (categoryId: string, subcategoryId: string, count: number = 8) => {
-  const category = categories.find(c => c.id === categoryId);
-  const subcategory = category?.subcategories.find(s => s.id === subcategoryId);
-  
-  if (!category || !subcategory) return [];
-
-  return Array.from({ length: count }, (_, i) => ({
-    id: `${categoryId}-${subcategoryId}-${i + 1}`,
-    title: `${subcategory.name} #${i + 1}`,
-    price: `${Math.floor(Math.random() * 1000000)} CFA`,
-    location: ["Yaoundé", "Douala", "Bafoussam", "Kribi"][Math.floor(Math.random() * 4)] + ", Cameroun",
-    image: [
-      "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7",
-      "https://images.unsplash.com/photo-1501854140801-50d01698950b",
-      "https://images.unsplash.com/photo-1582562124811-c09040d0a901",
-      "https://images.unsplash.com/photo-1472396961693-142e6e269027"
-    ][Math.floor(Math.random() * 4)],
-    timePosted: `Il y a ${Math.floor(Math.random() * 24)} heures`
-  }));
-};
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import { Skeleton } from "./ui/skeleton";
 
 interface SubcategoryListingsProps {
   categoryId: string;
@@ -31,33 +12,85 @@ interface SubcategoryListingsProps {
 }
 
 export const SubcategoryListings = ({ categoryId, subcategoryId }: SubcategoryListingsProps) => {
-  const category = categories.find(c => c.id === categoryId);
-  const subcategory = category?.subcategories.find(s => s.id === subcategoryId);
-  const listings = generateMockListings(categoryId, subcategoryId);
+  // Fetch category and subcategory info
+  const { data: categoryData, isLoading: isCategoryLoading } = useQuery({
+    queryKey: ['category', categoryId],
+    queryFn: async () => {
+      const response = await axios.get(`http://localhost:5000/api/categories/${categoryId}`);
+      return response.data;
+    },
+  });
 
-  if (!category || !subcategory) {
-    return <div>Catégorie ou sous-catégorie non trouvée</div>;
+  // Fetch listings for this subcategory
+  const { data: listings, isLoading: isListingsLoading } = useQuery({
+    queryKey: ['subcategoryListings', categoryId, subcategoryId],
+    queryFn: async () => {
+      const response = await axios.get(
+        `http://localhost:5000/api/listings/category/${categoryId}/subcategory/${subcategoryId}`
+      );
+      return response.data;
+    },
+  });
+
+  const isLoading = isCategoryLoading || isListingsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <Skeleton className="h-10 w-1/3 mb-2" />
+          <Skeleton className="h-6 w-2/3" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <Skeleton className="aspect-video w-full" />
+              <div className="p-4">
+                <Skeleton className="h-6 w-4/5 mb-2" />
+                <Skeleton className="h-6 w-1/3 mb-2" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
+
+  if (!categoryData || !listings || listings.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-semibold mb-4">Aucune annonce disponible</h2>
+          <p className="text-gray-600">
+            Il n'y a pas encore d'annonces dans cette sous-catégorie.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const subcategory = categoryData.subcategories.find((s: any) => s.id === subcategoryId);
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">{subcategory.name}</h1>
+        <h1 className="text-3xl font-bold mb-2">{subcategory?.name || "Sous-catégorie"}</h1>
         <p className="text-gray-600">
-          Découvrez toutes les annonces dans la catégorie {category.name} &gt; {subcategory.name}
+          Découvrez toutes les annonces dans la catégorie {categoryData.name} &gt; {subcategory?.name}
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {listings.map((listing) => (
+        {listings.map((listing: any) => (
           <Link
-            key={listing.id}
-            to={`/listings/${listing.id}`}
+            key={listing._id}
+            to={`/listings/categories/${categoryId}/${encodeURIComponent(listing.title)}`}
             className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
           >
             <div className="aspect-video relative overflow-hidden">
               <img
-                src={listing.image}
+                src={listing.images[0] || "https://via.placeholder.com/400x300"}
                 alt={listing.title}
                 className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
               />
@@ -84,14 +117,18 @@ export const SubcategoryListings = ({ categoryId, subcategoryId }: SubcategoryLi
                 </Button>
               </div>
               <div className="absolute top-2 left-2 bg-white/80 rounded px-2 py-1 text-sm">
-                {listing.timePosted}
+                {new Date(listing.createdAt).toLocaleDateString("fr-FR", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric"
+                })}
               </div>
             </div>
             <div className="p-4">
               <h3 className="font-medium text-lg text-gray-900 group-hover:text-primary">
                 {listing.title}
               </h3>
-              <p className="text-primary font-bold mt-2">{listing.price}</p>
+              <p className="text-primary font-bold mt-2">{listing.price} CFA</p>
               <div className="flex items-center gap-1 mt-2 text-gray-500 text-sm">
                 <MapPin className="h-4 w-4" />
                 <span>{listing.location}</span>

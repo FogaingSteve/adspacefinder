@@ -1,17 +1,18 @@
-import { Navigation } from "@/components/Navigation";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { Footer } from "@/components/Footer";
-import { categories } from "@/data/categories";
 import { RecentListings } from "@/components/RecentListings";
 import { useSearchListings } from "@/hooks/useListings";
 import { toast } from "sonner";
-import { topCategories } from "@/data/topCategories";
+import { useCategories, categoryIcons } from "@/data/topCategories";
 import { CategoryListings } from "@/components/CategoryListings";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 
 const cities = ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda", "Kribi"];
 const priceRanges = [
@@ -27,6 +28,23 @@ const Index = () => {
   const [selectedCity, setSelectedCity] = useState("");
   const [priceRange, setPriceRange] = useState("");
 
+  // Fetch categories from MongoDB
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+
+  // Fetch cities from MongoDB
+  const { data: citiesData } = useQuery({
+    queryKey: ['cities'],
+    queryFn: async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/cities');
+        return response.data;
+      } catch (error) {
+        console.error("Failed to fetch cities:", error);
+        return cities; // Fallback to static cities
+      }
+    }
+  });
+
   const { data: searchResults, isLoading } = useSearchListings(searchQuery);
 
   const handleSearch = () => {
@@ -39,8 +57,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
-      
       {/* Hero Section */}
       <div className="bg-primary py-16 md:py-24">
         <div className="container mx-auto px-4 text-center">
@@ -73,11 +89,15 @@ const Index = () => {
                   <SelectValue placeholder="Catégorie" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
+                  {categoriesLoading ? (
+                    <SelectItem value="loading" disabled>Chargement...</SelectItem>
+                  ) : (
+                    categories?.map((cat: any) => (
+                      <SelectItem key={cat._id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               <Select value={selectedCity} onValueChange={setSelectedCity}>
@@ -85,7 +105,7 @@ const Index = () => {
                   <SelectValue placeholder="Ville" />
                 </SelectTrigger>
                 <SelectContent>
-                  {cities.map((city) => (
+                  {(citiesData || cities).map((city: string) => (
                     <SelectItem key={city} value={city}>
                       {city}
                     </SelectItem>
@@ -169,22 +189,36 @@ const Index = () => {
       <div className="container mx-auto px-4 py-12">
         <h2 className="text-2xl font-bold mb-8 text-center">Top Catégories</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-4">
-          {topCategories.map((category) => (
-            <Link
-              key={category.name}
-              to={category.link}
-              className="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
-            >
-              <category.icon className="h-8 w-8 mb-2 text-primary" />
-              <span className="text-sm text-center">{category.name}</span>
-            </Link>
-          ))}
+          {categoriesLoading ? (
+            // Show loading skeletons
+            Array(10).fill(0).map((_, i) => (
+              <div key={i} className="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm">
+                <Skeleton className="h-8 w-8 mb-2 rounded-full" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))
+          ) : (
+            // Show actual categories
+            categories?.slice(0, 10).map((category: any) => {
+              const Icon = categoryIcons[category.id as keyof typeof categoryIcons] || null;
+              return (
+                <Link
+                  key={category._id}
+                  to={`/categories/${category.id}`}
+                  className="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                >
+                  {Icon && <Icon className="h-8 w-8 mb-2 text-primary" />}
+                  <span className="text-sm text-center">{category.name}</span>
+                </Link>
+              );
+            })
+          )}
         </div>
       </div>
 
       {/* Category Listings Sections */}
-      {categories.map((category) => (
-        <div key={category.id} className="container mx-auto px-4 py-8">
+      {!categoriesLoading && categories?.map((category: any) => (
+        <div key={category._id} className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold">{category.name}</h2>
             <Link 
@@ -202,8 +236,6 @@ const Index = () => {
       <div className="container mx-auto px-4">
         <RecentListings />
       </div>
-
-      <Footer />
     </div>
   );
 };

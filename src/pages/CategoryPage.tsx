@@ -1,11 +1,45 @@
+
 import { useParams } from "react-router-dom";
 import { CategoryListings } from "@/components/CategoryListings";
-import { categories } from "@/data/categories";
-import { Car, CarFront, Bus, Truck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import { Skeleton } from "@/components/ui/skeleton";
+import { categoryIcons } from "@/data/topCategories";
+import { Link } from "react-router-dom";
 
 const CategoryPage = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
-  const category = categories.find((c) => c.id === categoryId);
+
+  // Fetch category info from MongoDB
+  const { data: category, isLoading } = useQuery({
+    queryKey: ['category', categoryId],
+    queryFn: async () => {
+      if (!categoryId) return null;
+      const response = await axios.get(`http://localhost:5000/api/categories/${categoryId}`);
+      return response.data;
+    },
+    enabled: !!categoryId
+  });
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Skeleton className="h-12 w-1/4 mb-8" />
+        <div className="grid grid-cols-1 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="space-y-4">
+              <Skeleton className="h-8 w-1/3" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((j) => (
+                  <Skeleton key={j} className="h-48 w-full rounded-lg" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (!category) {
     return (
@@ -15,33 +49,36 @@ const CategoryPage = () => {
     );
   }
 
-  const getIcon = () => {
-    switch (categoryId) {
-      case "vehicules":
-        return <Car className="h-6 w-6" />;
-      case "motos":
-        return <CarFront className="h-6 w-6" />;
-      case "bus":
-        return <Bus className="h-6 w-6" />;
-      case "camions":
-        return <Truck className="h-6 w-6" />;
-      default:
-        return null;
-    }
-  };
+  const CategoryIcon = categoryIcons[categoryId as keyof typeof categoryIcons] || null;
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 flex items-center gap-3">
-        {getIcon()}
+        {CategoryIcon && <CategoryIcon className="h-6 w-6" />}
         <h1 className="text-3xl font-bold">{category.name}</h1>
       </div>
       
       <div className="grid grid-cols-1 gap-6">
-        {category.subcategories.map((subcategory) => (
+        {category.subcategories.map((subcategory: any) => (
           <div key={subcategory.id} className="space-y-4">
-            <h2 className="text-2xl font-semibold">{subcategory.name}</h2>
-            <CategoryListings categoryId={category.id} />
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">{subcategory.name}</h2>
+              <Link 
+                to={`/categories/${categoryId}/${subcategory.id}`}
+                className="text-primary hover:underline"
+              >
+                Voir plus
+              </Link>
+            </div>
+            
+            {/* We'll pass the subcategory ID here to fetch specific listings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <CategoryListings 
+                categoryId={categoryId} 
+                subcategoryId={subcategory.id}
+                limit={4} 
+              />
+            </div>
           </div>
         ))}
       </div>
