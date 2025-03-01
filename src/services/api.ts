@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
@@ -50,7 +49,7 @@ export const listingService = {
 
   async updateListing(id: string, listing: Partial<CreateListingDTO>): Promise<Listing> {
     try {
-      const response = await api.put(`/listings/${id}`, listing);
+      const response = await axios.put(`${API_URL}/listings/${id}`, listing);
       return response.data;
     } catch (error) {
       console.error("Erreur mise à jour annonce:", error);
@@ -60,7 +59,7 @@ export const listingService = {
 
   async deleteListing(id: string): Promise<void> {
     try {
-      await api.delete(`/listings/${id}`);
+      await axios.delete(`${API_URL}/listings/${id}`);
     } catch (error) {
       console.error("Erreur suppression annonce:", error);
       throw new Error("Erreur lors de la suppression de l'annonce");
@@ -69,7 +68,7 @@ export const listingService = {
 
   async markAsSold(id: string): Promise<Listing> {
     try {
-      const response = await api.put(`/listings/${id}/sold`);
+      const response = await axios.put(`${API_URL}/listings/${id}/sold`);
       return response.data;
     } catch (error) {
       console.error("Erreur marquage comme vendu:", error);
@@ -79,7 +78,7 @@ export const listingService = {
 
   async getRecentListings(): Promise<Listing[]> {
     try {
-      const response = await api.get(`/listings/recent`);
+      const response = await axios.get(`${API_URL}/listings/recent`);
       return response.data;
     } catch (error) {
       console.error("Erreur récupération annonces récentes:", error);
@@ -90,7 +89,7 @@ export const listingService = {
   async getUserListings(userId: string): Promise<Listing[]> {
     try {
       console.log("Récupération des annonces pour userId:", userId);
-      const response = await api.get(`/listings/user/${userId}`);
+      const response = await axios.get(`${API_URL}/listings/user/${userId}`);
       console.log("Annonces reçues:", response.data);
       return response.data;
     } catch (error) {
@@ -102,7 +101,7 @@ export const listingService = {
 
   async getListingsByCategory(categoryId: string): Promise<Listing[]> {
     try {
-      const response = await api.get(`/listings/category/${categoryId}`);
+      const response = await axios.get(`${API_URL}/listings/category/${categoryId}`);
       return response.data;
     } catch (error) {
       console.error("Erreur récupération annonces par catégorie:", error);
@@ -116,7 +115,7 @@ export const listingService = {
       if (category) {
         params.category = category;
       }
-      const response = await api.get(`/listings/search`, { params });
+      const response = await axios.get(`${API_URL}/listings/search`, { params });
       return response.data;
     } catch (error) {
       console.error("Erreur recherche annonces:", error);
@@ -126,7 +125,7 @@ export const listingService = {
 
   async getListingByTitle(title: string): Promise<Listing> {
     try {
-      const response = await api.get(`/listings/title/${encodeURIComponent(title)}`);
+      const response = await axios.get(`${API_URL}/listings/title/${encodeURIComponent(title)}`);
       return response.data;
     } catch (error) {
       console.error("Erreur récupération annonce par titre:", error);
@@ -138,7 +137,7 @@ export const listingService = {
     try {
       const formData = new FormData();
       files.forEach(file => formData.append('images', file));
-      const response = await api.post(`/listings/upload`, formData);
+      const response = await axios.post(`${API_URL}/listings/upload`, formData);
       return response.data.urls;
     } catch (error) {
       console.error("Erreur upload images:", error);
@@ -148,7 +147,7 @@ export const listingService = {
 
   async toggleFavorite(listingId: string, userId: string): Promise<void> {
     try {
-      await api.post(`/listings/${listingId}/favorite`, { userId });
+      await axios.post(`${API_URL}/listings/${listingId}/favorite`, { userId });
     } catch (error) {
       console.error("Erreur toggle favori:", error);
       throw new Error("Erreur lors de l'ajout/retrait des favoris");
@@ -157,7 +156,7 @@ export const listingService = {
 
   async getFavorites(userId: string): Promise<Listing[]> {
     try {
-      const response = await api.get(`/listings/favorites/${userId}`);
+      const response = await axios.get(`${API_URL}/listings/favorites/${userId}`);
       return response.data;
     } catch (error) {
       console.error("Erreur récupération favoris:", error);
@@ -171,7 +170,7 @@ export const categoryService = {
   // Récupérer toutes les catégories
   async getCategories() {
     try {
-      const response = await api.get(`/categories`);
+      const response = await axios.get(`${API_URL}/categories`);
       return response.data;
     } catch (error) {
       console.error("Erreur récupération catégories:", error);
@@ -182,7 +181,7 @@ export const categoryService = {
   // Récupérer une catégorie par son ID
   async getCategory(categoryId: string) {
     try {
-      const response = await api.get(`/categories/${categoryId}`);
+      const response = await axios.get(`${API_URL}/categories/${categoryId}`);
       return response.data;
     } catch (error) {
       console.error(`Erreur récupération catégorie ${categoryId}:`, error);
@@ -193,7 +192,7 @@ export const categoryService = {
   // Récupérer une sous-catégorie
   async getSubcategory(categoryId: string, subcategoryId: string) {
     try {
-      const response = await api.get(`/categories/${categoryId}/${subcategoryId}`);
+      const response = await axios.get(`${API_URL}/categories/${categoryId}/${subcategoryId}`);
       return response.data;
     } catch (error) {
       console.error(`Erreur récupération sous-catégorie ${subcategoryId}:`, error);

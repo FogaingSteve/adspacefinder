@@ -1,13 +1,11 @@
-
 import { Link } from "react-router-dom";
 import { MapPin } from "lucide-react";
 import { Button } from "./ui/button";
 import { useRecentListings } from "@/hooks/useListings";
 import { Skeleton } from "./ui/skeleton";
-import { Alert, AlertDescription } from "./ui/alert";
 
 export const RecentListings = () => {
-  const { data: listings, isLoading, isError } = useRecentListings();
+  const { data: listings, isLoading } = useRecentListings();
 
   if (isLoading) {
     return (
@@ -24,19 +22,6 @@ export const RecentListings = () => {
             </div>
           ))}
         </div>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="my-12">
-        <h2 className="text-2xl font-bold mb-6">Annonces récentes</h2>
-        <Alert variant="destructive">
-          <AlertDescription>
-            Une erreur est survenue lors du chargement des annonces récentes. Veuillez réessayer plus tard.
-          </AlertDescription>
-        </Alert>
       </div>
     );
   }
@@ -64,13 +49,9 @@ export const RecentListings = () => {
           >
             <div className="aspect-video relative overflow-hidden">
               <img
-                src={listing.images && listing.images[0] ? listing.images[0] : "/placeholder.svg"}
+                src={listing.images[0]}
                 alt={listing.title}
                 className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = "/placeholder.svg";
-                }}
               />
               <div className="absolute top-2 right-2">
                 <Button
@@ -95,9 +76,7 @@ export const RecentListings = () => {
                 </Button>
               </div>
               <div className="absolute top-2 left-2 bg-white/80 rounded px-2 py-1 text-sm">
-                {listing.createdAt 
-                  ? new Date(listing.createdAt).toLocaleDateString() 
-                  : "Date inconnue"}
+                {new Date(listing.createdAt || "").toLocaleDateString()}
               </div>
             </div>
             <div className="p-4">
@@ -111,7 +90,7 @@ export const RecentListings = () => {
               </div>
               <div className="flex items-center gap-1 mt-2 text-gray-500 text-sm">
                 <MapPin className="h-4 w-4" />
-                <span>{listing.location || "Emplacement non spécifié"}</span>
+                <span>{listing.location}</span>
               </div>
             </div>
           </Link>
