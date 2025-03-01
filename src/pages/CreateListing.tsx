@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -24,6 +25,9 @@ import {
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ImageUpload } from "@/components/ImageUpload";
 import { useCreateListing } from "@/hooks/useListings";
+import { categoryService } from "@/services/api";
+import { toast } from "sonner";
+import { useCategories } from "@/data/topCategories";
 
 const formSchema = z.object({
   title: z.string().min(5, "Le titre doit contenir au moins 5 caractères"),
@@ -40,7 +44,9 @@ type FormValues = z.infer<typeof formSchema>;
 const CreateListing = () => {
   const navigate = useNavigate();
   const [isPreview, setIsPreview] = useState(false);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
   const createListingMutation = useCreateListing();
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -54,6 +60,32 @@ const CreateListing = () => {
       images: [],
     },
   });
+
+  const selectedCategory = form.watch("category");
+
+  // Fetch subcategories when category changes
+  useEffect(() => {
+    if (selectedCategory) {
+      const fetchSubcategories = async () => {
+        try {
+          const category = await categoryService.getCategory(selectedCategory);
+          console.log("Subcategories fetched:", category.subcategories);
+          setSubcategories(category.subcategories || []);
+          
+          // Reset subcategory when category changes
+          form.setValue("subcategory", "");
+        } catch (error) {
+          console.error("Failed to fetch subcategories:", error);
+          toast.error("Erreur lors du chargement des sous-catégories");
+          setSubcategories([]);
+        }
+      };
+      
+      fetchSubcategories();
+    } else {
+      setSubcategories([]);
+    }
+  }, [selectedCategory, form]);
 
   const onSubmit = (data: FormValues) => {
     createListingMutation.mutate({
@@ -92,12 +124,16 @@ const CreateListing = () => {
                 {formData.images && formData.images.length > 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {formData.images.map((image, index) => (
-                      <img
-                        key={index}
-                        src={image}
-                        alt={`Image ${index + 1}`}
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
+                      <div key={index} className="h-48 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <img
+                          src={image}
+                          alt={`Image ${index + 1}`}
+                          className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x300?text=Image+non+disponible";
+                          }}
+                        />
+                      </div>
                     ))}
                   </div>
                 )}
@@ -198,10 +234,17 @@ const CreateListing = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="immobilier">Immobilier</SelectItem>
-                      <SelectItem value="vehicules">Véhicules</SelectItem>
-                      <SelectItem value="emploi">Emploi</SelectItem>
-                      <SelectItem value="shopping">Shopping</SelectItem>
+                      {categoriesLoading ? (
+                        <SelectItem value="loading" disabled>Chargement...</SelectItem>
+                      ) : categories && categories.length > 0 ? (
+                        categories.map((category: any) => (
+                          <SelectItem key={category.slug} value={category.slug}>
+                            {category.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-data" disabled>Aucune catégorie disponible</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -215,17 +258,24 @@ const CreateListing = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Sous-catégorie</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedCategory || subcategories.length === 0}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Sélectionnez une sous-catégorie" />
+                        <SelectValue placeholder={!selectedCategory ? "Sélectionnez d'abord une catégorie" : "Sélectionnez une sous-catégorie"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="appartements">Appartements</SelectItem>
-                      <SelectItem value="maisons">Maisons</SelectItem>
-                      <SelectItem value="terrains">Terrains</SelectItem>
-                      <SelectItem value="bureaux">Bureaux</SelectItem>
+                      {!selectedCategory ? (
+                        <SelectItem value="no-category" disabled>Sélectionnez d'abord une catégorie</SelectItem>
+                      ) : subcategories.length > 0 ? (
+                        subcategories.map((subcategory: any) => (
+                          <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                            {subcategory.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="loading" disabled>Chargement des sous-catégories...</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

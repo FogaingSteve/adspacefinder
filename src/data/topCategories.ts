@@ -1,7 +1,6 @@
 
 import { Car, Smartphone, Shirt, Home, Microwave, Armchair, Briefcase, Handshake, Baby, Trophy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import { categoryService } from "@/services/api";
 
 export const categoryIcons = {
@@ -36,7 +35,9 @@ export const useCategories = () => {
     queryKey: ['categories'],
     queryFn: async () => {
       try {
-        return await categoryService.getCategories();
+        const categories = await categoryService.getCategories();
+        console.log("Categories fetched:", categories);
+        return categories;
       } catch (error) {
         console.error("Failed to fetch categories:", error);
         return [];

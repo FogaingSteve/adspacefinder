@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X } from "lucide-react";
@@ -36,13 +37,19 @@ export const ImageUpload = ({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {images.map((url) => (
-          <div key={url} className="relative group">
-            <img
-              src={url}
-              alt="Uploaded"
-              className="w-full h-48 object-cover rounded-lg"
-            />
+        {images.map((url, index) => (
+          <div key={`${url}-${index}`} className="relative group">
+            <div className="h-48 rounded-lg bg-gray-100 flex items-center justify-center">
+              <img
+                src={url}
+                alt="Uploaded"
+                className="w-full h-full object-cover rounded-lg"
+                onError={(e) => {
+                  // On error, set a placeholder or fallback image
+                  (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x300?text=Image+non+disponible";
+                }}
+              />
+            </div>
             <button
               onClick={() => onRemove(url)}
               className="absolute top-2 right-2 p-1 rounded-full bg-white/80 hover:bg-white 
