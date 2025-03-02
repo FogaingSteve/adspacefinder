@@ -16,8 +16,6 @@ api.interceptors.request.use(async (config) => {
   if (session?.access_token) {
     config.headers.Authorization = `Bearer ${session.access_token}`;
   } else {
-    // Pour les routes qui ne nécessitent pas d'authentification, 
-    // ne pas rejeter la promesse
     if (config.url?.includes('/categories') || config.url?.includes('/listings/recent')) {
       return config;
     }
@@ -29,7 +27,6 @@ api.interceptors.request.use(async (config) => {
 
 // Service pour les annonces
 export const listingService = {
-  // Créer une nouvelle annonce
   async createListing(listing: CreateListingDTO): Promise<Listing> {
     try {
       console.log("Session:", await supabase.auth.getSession());
@@ -109,11 +106,14 @@ export const listingService = {
     }
   },
 
-  async searchListings(query: string, category?: string): Promise<Listing[]> {
+  async searchListings(query: string, category?: string, exactTitle?: string): Promise<Listing[]> {
     try {
       const params: any = { q: query };
       if (category) {
         params.category = category;
+      }
+      if (exactTitle) {
+        params.exactTitle = exactTitle;
       }
       
       console.log("Recherche avec params:", params);
@@ -130,14 +130,24 @@ export const listingService = {
     } catch (error: any) {
       console.error("Erreur recherche annonces:", error);
       console.error("Détails:", error.response?.data);
+      
+      if (error.response?.status === 500) {
+        if (error.response?.data?.message?.includes("Cast to ObjectId failed")) {
+          throw new Error("Format d'ID invalide pour cette recherche");
+        }
+      }
+      
       throw new Error("Erreur lors de la recherche d'annonces");
     }
   },
 
   async getListingByTitle(title: string): Promise<Listing> {
     try {
-      const response = await axios.get(`${API_URL}/listings/title/${encodeURIComponent(title)}`);
-      return response.data;
+      const results = await this.searchListings(title, undefined, title);
+      if (results && results.length > 0) {
+        return results[0];
+      }
+      throw new Error("Annonce non trouvée");
     } catch (error) {
       console.error("Erreur récupération annonce par titre:", error);
       throw new Error("Erreur lors de la récupération de l'annonce par titre");
@@ -178,7 +188,6 @@ export const listingService = {
 
 // Service pour les catégories
 export const categoryService = {
-  // Récupérer toutes les catégories
   async getCategories() {
     try {
       const response = await axios.get(`${API_URL}/categories`);
@@ -189,7 +198,6 @@ export const categoryService = {
     }
   },
 
-  // Récupérer une catégorie par son ID
   async getCategory(categoryId: string) {
     try {
       const response = await axios.get(`${API_URL}/categories/${categoryId}`);
@@ -200,7 +208,6 @@ export const categoryService = {
     }
   },
 
-  // Récupérer une sous-catégorie
   async getSubcategory(categoryId: string, subcategoryId: string) {
     try {
       const response = await axios.get(`${API_URL}/categories/${categoryId}/${subcategoryId}`);

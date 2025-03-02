@@ -81,10 +81,10 @@ export const useRecentListings = () => {
   });
 };
 
-export const useSearchListings = (query: string, category?: string) => {
+export const useSearchListings = (query: string, category?: string, exactTitle?: string) => {
   return useQuery({
-    queryKey: ['searchListings', query, category],
-    queryFn: () => listingService.searchListings(query, category),
+    queryKey: ['searchListings', query, category, exactTitle],
+    queryFn: () => listingService.searchListings(query, category, exactTitle),
     enabled: !!query,
     retry: 2,
   });

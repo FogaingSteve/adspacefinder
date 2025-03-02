@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -29,7 +28,7 @@ import { listingService } from "@/services/api";
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
   const [showPhoneNumber, setShowPhoneNumber] = useState(false);
-  const { id, title, category } = useParams();
+  const { id, title, category } = useParams<{ id: string; title: string; category: string }>();
   const location = useLocation();
 
   // Déterminer si nous utilisons l'ID ou le titre pour récupérer l'annonce
@@ -45,26 +44,16 @@ const ListingDetail = () => {
           const decodedTitle = decodeURIComponent(title);
           console.log("Fetching by title:", decodedTitle, "and category:", category);
           
-          // Recherche par titre et catégorie using listingService
-          const results = await listingService.searchListings(decodedTitle, category);
+          // Recherche par titre exact et catégorie
+          const results = await listingService.searchListings(decodedTitle, category, decodedTitle);
           
           console.log("Search results length:", results?.length || 0);
           
           if (results && results.length > 0) {
-            // Retourner le premier résultat qui correspond au titre exact
-            const exactMatch = results.find((item: any) => 
-              item.title.toLowerCase() === decodedTitle.toLowerCase()
-            );
-            
-            if (exactMatch) {
-              console.log("Found exact match:", exactMatch);
-              return exactMatch;
-            } else if (results[0]) {
-              console.log("No exact match, returning first result:", results[0]);
-              return results[0];
-            }
+            console.log("Returning first result:", results[0]);
+            return results[0];
           } else {
-            console.log("No results or empty array returned");
+            console.log("No results found");
             throw new Error('Aucun résultat trouvé pour cette recherche');
           }
         } else if (id) {
@@ -81,6 +70,15 @@ const ListingDetail = () => {
       } catch (error: any) {
         console.error("Error fetching listing:", error);
         console.error("Error response:", error.response?.data);
+        
+        // Amélioration de la gestion des erreurs avec messages plus spécifiques
+        if (error.response?.status === 500) {
+          if (error.response?.data?.message?.includes("Cast to ObjectId failed")) {
+            toast.error("Format d'identifiant invalide");
+            throw new Error("Format d'identifiant invalide");
+          }
+        }
+        
         toast.error("Impossible de charger l'annonce");
         throw error;
       }
@@ -94,7 +92,7 @@ const ListingDetail = () => {
   useEffect(() => {
     if (fetchByTitle && title && category) {
       const decodedTitle = decodeURIComponent(title);
-      console.log(`API URL: http://localhost:5000/api/listings/search?q=${encodeURIComponent(decodedTitle)}&category=${encodeURIComponent(category)}`);
+      console.log(`API URL: http://localhost:5000/api/listings/search?q=${encodeURIComponent(decodedTitle)}&category=${encodeURIComponent(category)}&exactTitle=${encodeURIComponent(decodedTitle)}`);
     }
   }, [fetchByTitle, title, category]);
 
