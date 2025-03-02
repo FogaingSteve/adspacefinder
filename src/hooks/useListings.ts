@@ -86,7 +86,7 @@ export const useSearchListings = (query: string, category?: string, exactTitle?:
     queryKey: ['searchListings', query, category, exactTitle],
     queryFn: () => listingService.searchListings(query, category, exactTitle),
     enabled: !!query,
-    retry: 1,
+    retry: 2,
   });
 };
 
