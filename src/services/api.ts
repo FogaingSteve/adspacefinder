@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
@@ -118,6 +117,7 @@ export const listingService = {
       }
       
       console.log("Recherche avec params:", params);
+      // Use regular axios here to avoid authentication issues for public routes
       const response = await axios.get(`${API_URL}/listings/search`, { params });
       console.log("Résultats de recherche:", response.data);
       return response.data;

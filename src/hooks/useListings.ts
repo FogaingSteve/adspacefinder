@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingService } from "@/services/api";
 import { CreateListingDTO, Listing } from "@/types/listing";
@@ -87,6 +86,7 @@ export const useSearchListings = (query: string, category?: string) => {
     queryKey: ['searchListings', query, category],
     queryFn: () => listingService.searchListings(query, category),
     enabled: !!query,
+    retry: 2,
   });
 };
 

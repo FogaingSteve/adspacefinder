@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -24,6 +23,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { toast } from "sonner";
+import { listingService } from "@/services/api";
 
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
@@ -44,28 +44,26 @@ const ListingDetail = () => {
           const decodedTitle = decodeURIComponent(title);
           console.log("Fetching by title:", decodedTitle, "and category:", category);
           
-          // Recherche par titre et catégorie
-          const response = await axios.get(`http://localhost:5000/api/listings/search`, {
-            params: { 
-              q: decodedTitle,
-              category: category
-            }
-          });
+          // Recherche par titre et catégorie using listingService
+          const results = await listingService.searchListings(decodedTitle, category);
           
-          console.log("Search response:", response.data);
+          console.log("Search results length:", results.length);
           
-          if (response.data && response.data.length > 0) {
+          if (results && results.length > 0) {
             // Retourner le premier résultat qui correspond au titre exact
-            const exactMatch = response.data.find((item: any) => 
+            const exactMatch = results.find((item: any) => 
               item.title.toLowerCase() === decodedTitle.toLowerCase()
             );
             
             if (exactMatch) {
+              console.log("Found exact match:", exactMatch);
               return exactMatch;
-            } else if (response.data[0]) {
-              return response.data[0];
+            } else if (results[0]) {
+              console.log("No exact match, returning first result:", results[0]);
+              return results[0];
             }
           }
+          console.log("No results found");
           throw new Error('Annonce non trouvée');
         } else if (id) {
           // Récupérer par ID
