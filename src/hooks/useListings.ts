@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingService } from "@/services/api";
 import { CreateListingDTO, Listing } from "@/types/listing";
@@ -81,11 +82,25 @@ export const useRecentListings = () => {
   });
 };
 
-export const useSearchListings = (query: string) => {
+export const useSearchListings = (query: string, category?: string) => {
   return useQuery({
-    queryKey: ['searchListings', query],
-    queryFn: () => listingService.searchListings(query),
+    queryKey: ['searchListings', query, category],
+    queryFn: () => listingService.searchListings(query, category),
     enabled: !!query,
+  });
+};
+
+export const useCategoryListings = (categoryId: string, subcategoryId?: string) => {
+  return useQuery({
+    queryKey: ['categoryListings', categoryId, subcategoryId],
+    queryFn: () => {
+      if (subcategoryId) {
+        // Logic for subcategory listings if needed
+        return listingService.searchListings('', categoryId);
+      }
+      return listingService.getListingsByCategory(categoryId);
+    },
+    enabled: !!categoryId,
   });
 };
 

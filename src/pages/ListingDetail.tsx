@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -23,6 +23,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { toast } from "sonner";
 
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
@@ -34,41 +35,38 @@ const ListingDetail = () => {
   const fetchByTitle = location.pathname.includes('/categories/');
   
   // Requête pour obtenir l'annonce depuis MongoDB via l'API
-  const { data: listing, isLoading: isListingLoading } = useQuery({
+  const { data: listing, isLoading: isListingLoading, error: listingError } = useQuery({
     queryKey: ['listing', fetchByTitle ? title : id, category],
     queryFn: async () => {
       try {
-        if (fetchByTitle && title) {
+        if (fetchByTitle && title && category) {
           // Décodez le titre s'il est encodé dans l'URL
           const decodedTitle = decodeURIComponent(title);
           console.log("Fetching by title:", decodedTitle, "and category:", category);
           
-          // Si la catégorie est disponible, l'utiliser pour la requête
-          if (category) {
-            const response = await axios.get(`http://localhost:5000/api/listings/search`, {
-              params: { 
-                q: decodedTitle,
-                category: category
-              }
-            });
+          // Recherche par titre et catégorie
+          const response = await axios.get(`http://localhost:5000/api/listings/search`, {
+            params: { 
+              q: decodedTitle,
+              category: category
+            }
+          });
+          
+          console.log("Search response:", response.data);
+          
+          if (response.data && response.data.length > 0) {
+            // Retourner le premier résultat qui correspond au titre exact
+            const exactMatch = response.data.find((item: any) => 
+              item.title.toLowerCase() === decodedTitle.toLowerCase()
+            );
             
-            if (response.data && response.data.length > 0) {
-              // Retourner le premier résultat qui correspond au titre exact
-              const exactMatch = response.data.find((item: any) => 
-                item.title.toLowerCase() === decodedTitle.toLowerCase()
-              );
-              
-              return exactMatch || response.data[0];
+            if (exactMatch) {
+              return exactMatch;
+            } else if (response.data[0]) {
+              return response.data[0];
             }
-            throw new Error('Annonce non trouvée');
-          } else {
-            // Recherche uniquement par titre si la catégorie n'est pas spécifiée
-            const response = await axios.get(`http://localhost:5000/api/listings/title/${encodeURIComponent(decodedTitle)}`);
-            if (!response.data) {
-              throw new Error('Annonce non trouvée');
-            }
-            return response.data;
           }
+          throw new Error('Annonce non trouvée');
         } else if (id) {
           // Récupérer par ID
           console.log("Fetching by ID:", id);
@@ -80,14 +78,25 @@ const ListingDetail = () => {
         } else {
           throw new Error('Aucun identifiant ou titre fourni');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching listing:", error);
+        console.error("Error response:", error.response?.data);
+        toast.error("Impossible de charger l'annonce");
         throw error;
       }
     },
-    enabled: !!(fetchByTitle ? title : id),
-    retry: 1
+    enabled: !!(fetchByTitle ? (title && category) : id),
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
+
+  // Log the actual API URL being fetched for debugging
+  useEffect(() => {
+    if (fetchByTitle && title && category) {
+      const decodedTitle = decodeURIComponent(title);
+      console.log(`API URL: http://localhost:5000/api/listings/search?q=${encodeURIComponent(decodedTitle)}&category=${encodeURIComponent(category)}`);
+    }
+  }, [fetchByTitle, title, category]);
 
   // Requête pour obtenir les données de l'utilisateur depuis Supabase
   const { data: userData, isLoading: isUserLoading } = useQuery({
@@ -116,13 +125,13 @@ const ListingDetail = () => {
     const url = window.location.href;
     const text = listing ? `Découvrez cette annonce : ${listing.title} - ${listing.price}€` : '';
     
-    const shareUrls = {
+    const shareUrls: Record<string, string> = {
       whatsapp: `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
       email: `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(text + "\n\n" + url)}`
     };
 
-    window.open(shareUrls[platform as keyof typeof shareUrls], "_blank");
+    window.open(shareUrls[platform], "_blank");
   };
 
   // Rediriger si nous sommes sur /listings/undefined
@@ -136,6 +145,18 @@ const ListingDetail = () => {
         <Alert>
           <AlertDescription>
             Aucun identifiant d'annonce n'a été fourni.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (listingError) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert>
+          <AlertDescription>
+            Cette annonce est introuvable ou a été supprimée. Erreur: {(listingError as Error).message}
           </AlertDescription>
         </Alert>
       </div>
@@ -174,33 +195,42 @@ const ListingDetail = () => {
     );
   }
 
+  // Vérifier si les images sont disponibles
+  const hasImages = listing.images && listing.images.length > 0;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Images and main info */}
         <div className="md:col-span-2 space-y-6">
-          <Carousel className="w-full">
-            <CarouselContent>
-              {listing.images && listing.images.map((image: string, index: number) => (
-                <CarouselItem key={index}>
-                  <div className="aspect-video relative overflow-hidden rounded-lg">
-                    <img
-                      src={image}
-                      alt={`${listing.title} - Image ${index + 1}`}
-                      className="object-cover w-full h-full"
-                      onError={(e) => {
-                        // Fallback for broken images
-                        const target = e.target as HTMLImageElement;
-                        target.src = "https://via.placeholder.com/400x300?text=Image+non+disponible";
-                      }}
-                    />
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
-          </Carousel>
+          {hasImages ? (
+            <Carousel className="w-full">
+              <CarouselContent>
+                {listing.images.map((image: string, index: number) => (
+                  <CarouselItem key={index}>
+                    <div className="aspect-video relative overflow-hidden rounded-lg">
+                      <img
+                        src={image}
+                        alt={`${listing.title} - Image ${index + 1}`}
+                        className="object-cover w-full h-full"
+                        onError={(e) => {
+                          // Fallback for broken images
+                          const target = e.target as HTMLImageElement;
+                          target.src = "https://via.placeholder.com/400x300?text=Image+non+disponible";
+                        }}
+                      />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+          ) : (
+            <div className="aspect-video relative overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center">
+              <p className="text-gray-400">Aucune image disponible</p>
+            </div>
+          )}
 
           <Card>
             <CardHeader>
@@ -223,6 +253,12 @@ const ListingDetail = () => {
                   <p className="text-gray-600 flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
                     {listing.location}
+                  </p>
+                </div>
+                <div>
+                  <h2 className="font-semibold mb-2">Catégorie</h2>
+                  <p className="text-gray-600">
+                    {listing.category} {listing.subcategory ? `> ${listing.subcategory}` : ''}
                   </p>
                 </div>
                 <div>
