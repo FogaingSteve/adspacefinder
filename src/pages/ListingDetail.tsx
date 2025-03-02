@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -47,7 +48,7 @@ const ListingDetail = () => {
           // Recherche par titre et catégorie using listingService
           const results = await listingService.searchListings(decodedTitle, category);
           
-          console.log("Search results length:", results.length);
+          console.log("Search results length:", results?.length || 0);
           
           if (results && results.length > 0) {
             // Retourner le premier résultat qui correspond au titre exact
@@ -62,9 +63,10 @@ const ListingDetail = () => {
               console.log("No exact match, returning first result:", results[0]);
               return results[0];
             }
+          } else {
+            console.log("No results or empty array returned");
+            throw new Error('Aucun résultat trouvé pour cette recherche');
           }
-          console.log("No results found");
-          throw new Error('Annonce non trouvée');
         } else if (id) {
           // Récupérer par ID
           console.log("Fetching by ID:", id);

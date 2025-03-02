@@ -119,10 +119,17 @@ export const listingService = {
       console.log("Recherche avec params:", params);
       // Use regular axios here to avoid authentication issues for public routes
       const response = await axios.get(`${API_URL}/listings/search`, { params });
+      
+      if (!response.data) {
+        console.error("Réponse API vide");
+        throw new Error("Aucune donnée reçue du serveur");
+      }
+      
       console.log("Résultats de recherche:", response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur recherche annonces:", error);
+      console.error("Détails:", error.response?.data);
       throw new Error("Erreur lors de la recherche d'annonces");
     }
   },

@@ -87,6 +87,10 @@ export const useSearchListings = (query: string, category?: string) => {
     queryFn: () => listingService.searchListings(query, category),
     enabled: !!query,
     retry: 2,
+    onError: (error: any) => {
+      console.error("Erreur de recherche:", error);
+      toast.error("Erreur lors de la recherche d'annonces");
+    }
   });
 };
 
