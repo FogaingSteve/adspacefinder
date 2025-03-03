@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingService } from "@/services/api";
 import { CreateListingDTO, Listing } from "@/types/listing";
@@ -96,6 +97,7 @@ export const useListingByTitle = (title: string, category: string) => {
     queryFn: () => listingService.getListingByTitle(title, category),
     enabled: !!(title && category),
     retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 

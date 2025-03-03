@@ -9,14 +9,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useLocation, Navigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { toast } from "sonner";
-import { listingService } from "@/services/api";
+import { useListingById, useListingByTitle } from "@/hooks/useListings";
 
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
@@ -24,36 +22,28 @@ const ListingDetail = () => {
   const { id, title, category } = useParams<{ id: string; title: string; category: string }>();
   const location = useLocation();
 
-  // Déterminer si nous utilisons l'ID ou le titre pour récupérer l'annonce
+  // Determine if we're using the ID or the title to retrieve the listing
   const fetchByTitle = location.pathname.includes('/categories/');
   
-  // Requête pour obtenir l'annonce
-  const { data: listing, isLoading: isListingLoading, error: listingError } = useQuery({
-    queryKey: ['listing', fetchByTitle ? title : id, category],
-    queryFn: async () => {
-      try {
-        if (fetchByTitle && title && category) {
-          console.log("Fetching by title:", title, "and category:", category);
-          
-          // Utiliser la méthode dédiée pour rechercher par titre
-          return await listingService.getListingByTitle(title, category);
-        } else if (id) {
-          console.log("Fetching by ID:", id);
-          return await listingService.getListingById(id);
-        } else {
-          throw new Error('Aucun identifiant ou titre fourni');
-        }
-      } catch (error: any) {
-        console.error("Error fetching listing:", error);
-        throw error;
-      }
-    },
-    enabled: !!(fetchByTitle ? (title && category) : id),
-    retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
+  // Query to get the listing based on path
+  const { 
+    data: listingById, 
+    isLoading: isListingByIdLoading, 
+    error: listingByIdError 
+  } = useListingById(id || '');
+  
+  const {
+    data: listingByTitle,
+    isLoading: isListingByTitleLoading,
+    error: listingByTitleError
+  } = useListingByTitle(title || '', category || '');
 
-  // Requête pour obtenir les données de l'utilisateur depuis Supabase
+  // Choose which data to use based on the path
+  const listing = fetchByTitle ? listingByTitle : listingById;
+  const isListingLoading = fetchByTitle ? isListingByTitleLoading : isListingByIdLoading;
+  const listingError = fetchByTitle ? listingByTitleError : listingByIdError;
+
+  // Query to get user data from Supabase
   const { data: userData, isLoading: isUserLoading } = useQuery({
     queryKey: ['user', listing?.userId],
     queryFn: async () => {
@@ -89,7 +79,7 @@ const ListingDetail = () => {
     window.open(shareUrls[platform], "_blank");
   };
 
-  // Rediriger si nous sommes sur /listings/undefined
+  // Redirect if we're on /listings/undefined
   if (id === 'undefined' && !fetchByTitle) {
     return <Navigate to="/" replace />;
   }
@@ -150,8 +140,8 @@ const ListingDetail = () => {
     );
   }
 
-  // Vérifier si les images sont disponibles
-  const hasImages = listing.images && listing.images.length > 0;
+  // Check if images are available
+  const hasImages = listing?.images && listing.images.length > 0;
 
   return (
     <div className="container mx-auto px-4 py-8">

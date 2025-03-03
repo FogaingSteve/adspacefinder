@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
@@ -119,7 +118,7 @@ export const listingService = {
       
       console.log("Recherche avec params:", params);
       
-      // Utiliser explicitement la route dédiée search-results pour éviter les problèmes d'ObjectId
+      // Use the dedicated endpoint to avoid ObjectId parsing issues
       const response = await axios.get(`${API_URL}/listings/search-results`, { params });
       
       if (!response.data) {
@@ -132,12 +131,6 @@ export const listingService = {
     } catch (error: any) {
       console.error("Erreur recherche annonces:", error);
       console.error("Détails:", error.response?.data);
-      
-      // Améliorer le message d'erreur
-      if (error.response?.data?.message?.includes("Cast to ObjectId failed")) {
-        console.log("Erreur de format ObjectId détectée");
-        throw new Error("Problème de format d'ID. Veuillez réessayer avec un autre terme de recherche.");
-      }
       
       throw new Error("Erreur lors de la recherche d'annonces: " + (error.response?.data?.message || error.message));
     }
@@ -164,16 +157,23 @@ export const listingService = {
       console.log(`Recherche annonce par titre "${title}" dans catégorie "${category}"`);
       const decodedTitle = decodeURIComponent(title);
       
-      const results = await this.searchListings(decodedTitle, category, decodedTitle);
-      console.log("Résultats de recherche par titre:", results);
+      // Use direct API call to search-results endpoint instead of using searchListings
+      const response = await axios.get(`${API_URL}/listings/search-results`, { 
+        params: { 
+          exactTitle: decodedTitle,
+          category: category
+        }
+      });
       
-      if (results && results.length > 0) {
-        return results[0];
+      console.log("Résultats de recherche par titre:", response.data);
+      
+      if (response.data && response.data.length > 0) {
+        return response.data[0];
       }
       throw new Error("Annonce non trouvée");
     } catch (error: any) {
       console.error("Erreur récupération annonce par titre:", error);
-      throw new Error(error.message || "Erreur lors de la récupération de l'annonce par titre");
+      throw new Error("Cette annonce est introuvable dans cette catégorie");
     }
   },
 
