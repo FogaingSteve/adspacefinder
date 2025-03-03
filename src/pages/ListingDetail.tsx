@@ -14,14 +14,7 @@ import { useParams, useLocation, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
-import axios from "axios";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { toast } from "sonner";
 import { listingService } from "@/services/api";
 
@@ -34,52 +27,24 @@ const ListingDetail = () => {
   // Déterminer si nous utilisons l'ID ou le titre pour récupérer l'annonce
   const fetchByTitle = location.pathname.includes('/categories/');
   
-  // Requête pour obtenir l'annonce depuis MongoDB via l'API
+  // Requête pour obtenir l'annonce
   const { data: listing, isLoading: isListingLoading, error: listingError } = useQuery({
     queryKey: ['listing', fetchByTitle ? title : id, category],
     queryFn: async () => {
       try {
         if (fetchByTitle && title && category) {
-          // Décodez le titre s'il est encodé dans l'URL
-          const decodedTitle = decodeURIComponent(title);
-          console.log("Fetching by title:", decodedTitle, "and category:", category);
+          console.log("Fetching by title:", title, "and category:", category);
           
-          // Recherche par titre exact et catégorie
-          const results = await listingService.searchListings(decodedTitle, category, decodedTitle);
-          
-          console.log("Search results length:", results?.length || 0);
-          
-          if (results && results.length > 0) {
-            console.log("Returning first result:", results[0]);
-            return results[0];
-          } else {
-            console.log("No results found");
-            throw new Error('Aucun résultat trouvé pour cette recherche');
-          }
+          // Utiliser la méthode dédiée pour rechercher par titre
+          return await listingService.getListingByTitle(title, category);
         } else if (id) {
-          // Récupérer par ID
           console.log("Fetching by ID:", id);
-          const response = await axios.get(`http://localhost:5000/api/listings/${id}`);
-          if (!response.data) {
-            throw new Error('Annonce non trouvée');
-          }
-          return response.data;
+          return await listingService.getListingById(id);
         } else {
           throw new Error('Aucun identifiant ou titre fourni');
         }
       } catch (error: any) {
         console.error("Error fetching listing:", error);
-        console.error("Error response:", error.response?.data);
-        
-        // Amélioration de la gestion des erreurs avec messages plus spécifiques
-        if (error.response?.status === 500) {
-          if (error.response?.data?.message?.includes("Cast to ObjectId failed")) {
-            toast.error("Format d'identifiant invalide");
-            throw new Error("Format d'identifiant invalide");
-          }
-        }
-        
-        toast.error("Impossible de charger l'annonce");
         throw error;
       }
     },
@@ -87,14 +52,6 @@ const ListingDetail = () => {
     retry: 1,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
-
-  // Log the actual API URL being fetched for debugging
-  useEffect(() => {
-    if (fetchByTitle && title && category) {
-      const decodedTitle = decodeURIComponent(title);
-      console.log(`API URL: http://localhost:5000/api/listings/search-results?q=${encodeURIComponent(decodedTitle)}&category=${encodeURIComponent(category)}&exactTitle=${encodeURIComponent(decodedTitle)}`);
-    }
-  }, [fetchByTitle, title, category]);
 
   // Requête pour obtenir les données de l'utilisateur depuis Supabase
   const { data: userData, isLoading: isUserLoading } = useQuery({

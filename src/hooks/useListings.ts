@@ -81,6 +81,24 @@ export const useRecentListings = () => {
   });
 };
 
+export const useListingById = (id: string) => {
+  return useQuery({
+    queryKey: ['listing', id],
+    queryFn: () => listingService.getListingById(id),
+    enabled: !!id,
+    retry: 1,
+  });
+};
+
+export const useListingByTitle = (title: string, category: string) => {
+  return useQuery({
+    queryKey: ['listingByTitle', title, category],
+    queryFn: () => listingService.getListingByTitle(title, category),
+    enabled: !!(title && category),
+    retry: 1,
+  });
+};
+
 export const useSearchListings = (query: string, category?: string, exactTitle?: string) => {
   return useQuery({
     queryKey: ['searchListings', query, category, exactTitle],
@@ -95,7 +113,6 @@ export const useCategoryListings = (categoryId: string, subcategoryId?: string) 
     queryKey: ['categoryListings', categoryId, subcategoryId],
     queryFn: () => {
       if (subcategoryId) {
-        // Logic for subcategory listings if needed
         return listingService.searchListings('', categoryId);
       }
       return listingService.getListingsByCategory(categoryId);

@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
@@ -118,7 +119,7 @@ export const listingService = {
       
       console.log("Recherche avec params:", params);
       
-      // Utiliser une route dédiée pour éviter les conflits avec les ID MongoDB
+      // Utiliser explicitement la route dédiée search-results pour éviter les problèmes d'ObjectId
       const response = await axios.get(`${API_URL}/listings/search-results`, { params });
       
       if (!response.data) {
@@ -132,7 +133,7 @@ export const listingService = {
       console.error("Erreur recherche annonces:", error);
       console.error("Détails:", error.response?.data);
       
-      // Améliorer la gestion des erreurs spécifiques
+      // Améliorer le message d'erreur
       if (error.response?.data?.message?.includes("Cast to ObjectId failed")) {
         console.log("Erreur de format ObjectId détectée");
         throw new Error("Problème de format d'ID. Veuillez réessayer avec un autre terme de recherche.");
@@ -142,16 +143,37 @@ export const listingService = {
     }
   },
 
-  async getListingByTitle(title: string): Promise<Listing> {
+  async getListingById(id: string): Promise<Listing> {
     try {
-      const results = await this.searchListings(title, undefined, title);
+      const response = await axios.get(`${API_URL}/listings/${id}`);
+      if (!response.data) {
+        throw new Error('Annonce non trouvée');
+      }
+      return response.data;
+    } catch (error: any) {
+      console.error("Erreur récupération annonce par ID:", error);
+      if (error.response?.status === 404) {
+        throw new Error("Cette annonce n'existe pas ou a été supprimée");
+      }
+      throw new Error("Erreur lors de la récupération de l'annonce: " + error.message);
+    }
+  },
+
+  async getListingByTitle(title: string, category: string): Promise<Listing> {
+    try {
+      console.log(`Recherche annonce par titre "${title}" dans catégorie "${category}"`);
+      const decodedTitle = decodeURIComponent(title);
+      
+      const results = await this.searchListings(decodedTitle, category, decodedTitle);
+      console.log("Résultats de recherche par titre:", results);
+      
       if (results && results.length > 0) {
         return results[0];
       }
       throw new Error("Annonce non trouvée");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur récupération annonce par titre:", error);
-      throw new Error("Erreur lors de la récupération de l'annonce par titre");
+      throw new Error(error.message || "Erreur lors de la récupération de l'annonce par titre");
     }
   },
 
