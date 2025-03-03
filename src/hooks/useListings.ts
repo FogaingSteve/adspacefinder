@@ -94,8 +94,15 @@ export const useListingById = (id: string) => {
 export const useListingByTitle = (title: string, category: string) => {
   return useQuery({
     queryKey: ['listingByTitle', title, category],
-    queryFn: () => listingService.getListingByTitle(title, category),
-    enabled: !!(title && category),
+    queryFn: async () => {
+      try {
+        return await listingService.getListingByTitle(title, category);
+      } catch (error) {
+        console.error("Error fetching listing by title:", error);
+        throw error;
+      }
+    },
+    enabled: !!(title),
     retry: 1,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });

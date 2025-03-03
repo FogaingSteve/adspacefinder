@@ -155,25 +155,41 @@ export const listingService = {
   async getListingByTitle(title: string, category: string): Promise<Listing> {
     try {
       console.log(`Recherche annonce par titre "${title}" dans catégorie "${category}"`);
-      const decodedTitle = decodeURIComponent(title);
+      const decodedTitle = decodeURIComponent(title).trim();
       
-      // Use direct API call to search-results endpoint instead of using searchListings
-      const response = await axios.get(`${API_URL}/listings/search-results`, { 
+      // First try with both title and category
+      try {
+        const response = await axios.get(`${API_URL}/listings/search-results`, { 
+          params: { 
+            exactTitle: decodedTitle,
+            category: category
+          }
+        });
+        
+        if (response.data && response.data.length > 0) {
+          console.log("Annonce trouvée avec titre et catégorie:", response.data[0]);
+          return response.data[0];
+        }
+      } catch (err) {
+        console.log("Erreur lors de la recherche avec titre et catégorie, tentative avec titre uniquement");
+      }
+      
+      // If not found, try with title only
+      const titleOnlyResponse = await axios.get(`${API_URL}/listings/search-results`, { 
         params: { 
-          exactTitle: decodedTitle,
-          category: category
+          exactTitle: decodedTitle
         }
       });
       
-      console.log("Résultats de recherche par titre:", response.data);
-      
-      if (response.data && response.data.length > 0) {
-        return response.data[0];
+      if (titleOnlyResponse.data && titleOnlyResponse.data.length > 0) {
+        console.log("Annonce trouvée avec titre uniquement:", titleOnlyResponse.data[0]);
+        return titleOnlyResponse.data[0];
       }
+      
       throw new Error("Annonce non trouvée");
     } catch (error: any) {
       console.error("Erreur récupération annonce par titre:", error);
-      throw new Error("Cette annonce est introuvable dans cette catégorie");
+      throw new Error("Cette annonce est introuvable");
     }
   },
 
