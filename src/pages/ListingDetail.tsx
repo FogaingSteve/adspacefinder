@@ -92,7 +92,7 @@ const ListingDetail = () => {
   useEffect(() => {
     if (fetchByTitle && title && category) {
       const decodedTitle = decodeURIComponent(title);
-      console.log(`API URL: http://localhost:5000/api/listings/search?q=${encodeURIComponent(decodedTitle)}&category=${encodeURIComponent(category)}&exactTitle=${encodeURIComponent(decodedTitle)}`);
+      console.log(`API URL: http://localhost:5000/api/listings/search-results?q=${encodeURIComponent(decodedTitle)}&category=${encodeURIComponent(category)}&exactTitle=${encodeURIComponent(decodedTitle)}`);
     }
   }, [fetchByTitle, title, category]);
 

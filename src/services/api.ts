@@ -118,8 +118,7 @@ export const listingService = {
       
       console.log("Recherche avec params:", params);
       
-      // Ici, nous utilisons une URL différente pour éviter le conflit avec la route /:id
-      // Assurez-vous que cette route existe côté backend
+      // Utiliser une route dédiée pour éviter les conflits avec les ID MongoDB
       const response = await axios.get(`${API_URL}/listings/search-results`, { params });
       
       if (!response.data) {
@@ -136,8 +135,7 @@ export const listingService = {
       // Améliorer la gestion des erreurs spécifiques
       if (error.response?.data?.message?.includes("Cast to ObjectId failed")) {
         console.log("Erreur de format ObjectId détectée");
-        toast.error("Erreur de format d'ID. Veuillez contacter l'administrateur.");
-        throw new Error("Problème de configuration du serveur. Essayez un autre terme de recherche.");
+        throw new Error("Problème de format d'ID. Veuillez réessayer avec un autre terme de recherche.");
       }
       
       throw new Error("Erreur lors de la recherche d'annonces: " + (error.response?.data?.message || error.message));
