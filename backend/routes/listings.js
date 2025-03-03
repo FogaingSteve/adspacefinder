@@ -33,6 +33,49 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// NOUVELLE ROUTE: Rechercher des annonces avec une route dédiée pour éviter les conflits d'ID
+router.get('/search-results', async (req, res) => {
+  try {
+    const query = req.query.q || '';
+    const category = req.query.category;
+    const exactTitle = req.query.exactTitle;
+    
+    console.log("Recherche avec paramètres:", { query, category, exactTitle });
+    
+    let searchQuery = {};
+    
+    // Construire la requête de recherche
+    if (exactTitle) {
+      // Recherche par titre exact si demandé
+      searchQuery.title = exactTitle;
+    } else {
+      // Sinon recherche partielle
+      searchQuery.$or = [
+        { title: { $regex: query, $options: 'i' } },
+        { description: { $regex: query, $options: 'i' } }
+      ];
+    }
+    
+    // Ajouter le filtre par catégorie si fourni
+    if (category) {
+      searchQuery.category = category;
+    }
+    
+    console.log("Requête MongoDB:", JSON.stringify(searchQuery));
+    
+    const listings = await Listing.find(searchQuery).sort({ createdAt: -1 });
+    
+    console.log(`${listings.length} résultats trouvés`);
+    res.json(listings);
+  } catch (error) {
+    console.error("Erreur recherche annonces:", error);
+    res.status(500).json({ 
+      message: error.message,
+      details: "Une erreur s'est produite lors de la recherche"
+    });
+  }
+});
+
 // Récupérer une annonce par titre (utilisée pour la route avec titre dans l'URL)
 router.get('/title/:title', async (req, res) => {
   try {
@@ -129,7 +172,7 @@ router.post('/upload', upload.array('images', 5), async (req, res) => {
   }
 });
 
-// Rechercher des annonces
+// Rechercher des annonces (ancienne méthode - gardée pour compatibilité)
 router.get('/search', async (req, res) => {
   try {
     const query = req.query.q;

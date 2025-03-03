@@ -1,4 +1,3 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -17,7 +16,7 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connecté à MongoDB'))
   .catch(err => console.error('Erreur de connexion à MongoDB:', err));
 
-// Routes
+// Initialiser les routes
 app.use('/api/listings', listingsRoutes);
 app.use('/api/categories', categoriesRoutes);
 
