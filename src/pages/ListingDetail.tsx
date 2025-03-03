@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useListingById, useListingByTitle } from "@/hooks/useListings";
+import { useQuery } from "@tanstack/react-query";
 
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
@@ -22,10 +23,8 @@ const ListingDetail = () => {
   const { id, title, category } = useParams<{ id: string; title: string; category: string }>();
   const location = useLocation();
 
-  // Determine if we're using the ID or the title to retrieve the listing
   const fetchByTitle = location.pathname.includes('/categories/');
-  
-  // Query to get the listing based on path
+
   const { 
     data: listingById, 
     isLoading: isListingByIdLoading, 
@@ -38,12 +37,10 @@ const ListingDetail = () => {
     error: listingByTitleError
   } = useListingByTitle(title || '', category || '');
 
-  // Choose which data to use based on the path
   const listing = fetchByTitle ? listingByTitle : listingById;
   const isListingLoading = fetchByTitle ? isListingByTitleLoading : isListingByIdLoading;
   const listingError = fetchByTitle ? listingByTitleError : listingByIdError;
 
-  // Query to get user data from Supabase
   const { data: userData, isLoading: isUserLoading } = useQuery({
     queryKey: ['user', listing?.userId],
     queryFn: async () => {
@@ -79,7 +76,6 @@ const ListingDetail = () => {
     window.open(shareUrls[platform], "_blank");
   };
 
-  // Redirect if we're on /listings/undefined
   if (id === 'undefined' && !fetchByTitle) {
     return <Navigate to="/" replace />;
   }
@@ -140,13 +136,11 @@ const ListingDetail = () => {
     );
   }
 
-  // Check if images are available
   const hasImages = listing?.images && listing.images.length > 0;
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Images and main info */}
         <div className="md:col-span-2 space-y-6">
           {hasImages ? (
             <Carousel className="w-full">
@@ -159,7 +153,6 @@ const ListingDetail = () => {
                         alt={`${listing.title} - Image ${index + 1}`}
                         className="object-cover w-full h-full"
                         onError={(e) => {
-                          // Fallback for broken images
                           const target = e.target as HTMLImageElement;
                           target.src = "https://via.placeholder.com/400x300?text=Image+non+disponible";
                         }}
@@ -221,7 +214,6 @@ const ListingDetail = () => {
           </Card>
         </div>
 
-        {/* Seller contact card */}
         <div>
           <Card>
             <CardHeader>
