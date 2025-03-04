@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -20,10 +21,24 @@ import { useQuery } from "@tanstack/react-query";
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
   const [showPhoneNumber, setShowPhoneNumber] = useState(false);
-  const { id, title, category } = useParams<{ id: string; title: string; category: string }>();
+  const { id, title, category, categoryId, subcategoryId } = useParams<{ 
+    id: string; 
+    title: string; 
+    category: string;
+    categoryId: string;
+    subcategoryId: string;
+  }>();
   const location = useLocation();
 
+  // Determine which path pattern we're dealing with
   const fetchByTitle = location.pathname.includes('/categories/');
+  const currentCategory = category || categoryId || '';
+  
+  // If we're on a subcategory path, use the subcategoryId as the category
+  const categoryToUse = subcategoryId ? subcategoryId : currentCategory;
+  
+  console.log("Route params:", { id, title, category, categoryId, subcategoryId });
+  console.log("Category to use for query:", categoryToUse);
 
   const { 
     data: listingById, 
@@ -35,7 +50,7 @@ const ListingDetail = () => {
     data: listingByTitle,
     isLoading: isListingByTitleLoading,
     error: listingByTitleError
-  } = useListingByTitle(title || '', category || '');
+  } = useListingByTitle(title || '', categoryToUse);
 
   const listing = fetchByTitle ? listingByTitle : listingById;
   const isListingLoading = fetchByTitle ? isListingByTitleLoading : isListingByIdLoading;

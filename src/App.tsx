@@ -36,6 +36,7 @@ function App() {
               <Route path="/listings/favorites" element={<Favorites />} />
               <Route path="/listings/:id" element={<ListingDetail />} />
               <Route path="/listings/categories/:category/:title" element={<ListingDetail />} />
+              <Route path="/categories/:categoryId/:subcategoryId/:title" element={<ListingDetail />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/dashboard" element={<Dashboard />} />

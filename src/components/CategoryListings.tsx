@@ -58,7 +58,9 @@ export const CategoryListings = ({ categoryId, subcategoryId, limit = 8 }: Categ
       {listings.map((listing: any) => (
         <Link
           key={listing._id}
-          to={`/listings/categories/${categoryId}/${encodeURIComponent(listing.title)}`}
+          to={subcategoryId 
+            ? `/categories/${categoryId}/${subcategoryId}/${encodeURIComponent(listing.title)}`
+            : `/listings/categories/${categoryId}/${encodeURIComponent(listing.title)}`}
           className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
         >
           <div className="aspect-video relative overflow-hidden">
