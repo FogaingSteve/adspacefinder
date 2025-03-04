@@ -138,10 +138,12 @@ export const listingService = {
 
   async getListingById(id: string): Promise<Listing> {
     try {
+      console.log(`Fetching listing with ID: ${id}`);
       const response = await axios.get(`${API_URL}/listings/${id}`);
       if (!response.data) {
         throw new Error('Annonce non trouvée');
       }
+      console.log("Listing found by ID:", response.data);
       return response.data;
     } catch (error: any) {
       console.error("Erreur récupération annonce par ID:", error);
@@ -156,26 +158,13 @@ export const listingService = {
     try {
       console.log(`Recherche annonce par titre "${title}" dans catégorie "${category}"`);
       
-      // Make sure title is properly formatted
-      const cleanTitle = title.trim();
-      console.log(`Titre nettoyé: "${cleanTitle}"`);
+      // Make sure title is properly formatted and decoded
+      const cleanTitle = decodeURIComponent(title.trim());
+      console.log(`Titre nettoyé et décodé: "${cleanTitle}"`);
       
-      // IMPROVED APPROACH: First try direct API call for exact title match
+      // STRATEGY 1: Try with search endpoint and exactTitle parameter
       try {
-        console.log("Tentative d'appel API direct pour correspondance exacte du titre");
-        const directResponse = await axios.get(`${API_URL}/listings/exact-title/${encodeURIComponent(cleanTitle)}`);
-        
-        if (directResponse.data && !Array.isArray(directResponse.data)) {
-          console.log("Succès: Annonce trouvée par appel direct:", directResponse.data);
-          return directResponse.data;
-        }
-      } catch (err) {
-        console.log("L'appel direct a échoué, tentative de recherche alternative", err);
-      }
-      
-      // FALLBACK 1: Try with exactTitle parameter
-      try {
-        console.log("Tentative: recherche par titre exacte");
+        console.log("Stratégie 1: recherche avec paramètre exactTitle");
         const exactTitleResponse = await axios.get(`${API_URL}/listings/search-results`, { 
           params: { 
             exactTitle: cleanTitle
@@ -183,16 +172,36 @@ export const listingService = {
         });
         
         if (exactTitleResponse.data && exactTitleResponse.data.length > 0) {
-          console.log("Succès: Annonce trouvée par titre exacte:", exactTitleResponse.data[0]);
+          console.log("Succès Stratégie 1: Annonce trouvée par titre exacte:", exactTitleResponse.data[0]);
           return exactTitleResponse.data[0];
         }
       } catch (err) {
-        console.log("Échec: Recherche par titre exacte a échoué", err);
+        console.log("Échec Stratégie 1: Recherche par titre exacte a échoué", err);
       }
       
-      // FALLBACK 2: Try with title as query parameter
+      // STRATEGY 2: Try ALL listings and filter client-side (last resort)
       try {
-        console.log("Tentative: recherche par titre comme query");
+        console.log("Stratégie 2: récupérer toutes les annonces récentes et filtrer côté client");
+        const allListingsResponse = await axios.get(`${API_URL}/listings/recent`);
+        
+        if (allListingsResponse.data && allListingsResponse.data.length > 0) {
+          // Case insensitive match
+          const foundListing = allListingsResponse.data.find((listing: any) => 
+            listing.title.toLowerCase() === cleanTitle.toLowerCase()
+          );
+          
+          if (foundListing) {
+            console.log("Succès Stratégie 2: Annonce trouvée dans les listings récents:", foundListing);
+            return foundListing;
+          }
+        }
+      } catch (err) {
+        console.log("Échec Stratégie 2: Récupération des listings récents a échoué", err);
+      }
+      
+      // STRATEGY 3: Try with title as query parameter
+      try {
+        console.log("Stratégie 3: recherche par titre comme query");
         const queryResponse = await axios.get(`${API_URL}/listings/search-results`, { 
           params: { 
             q: cleanTitle
@@ -200,17 +209,17 @@ export const listingService = {
         });
         
         if (queryResponse.data && queryResponse.data.length > 0) {
-          console.log("Succès: Annonce trouvée avec titre comme query:", queryResponse.data[0]);
+          console.log("Succès Stratégie 3: Annonce trouvée avec titre comme query:", queryResponse.data[0]);
           return queryResponse.data[0];
         }
       } catch (err) {
-        console.log("Échec: Recherche avec titre comme query a échoué", err);
+        console.log("Échec Stratégie 3: Recherche avec titre comme query a échoué", err);
       }
       
-      // FALLBACK 3: Try with title and category
+      // STRATEGY 4: Try with title and category
       if (category && category.length > 0) {
         try {
-          console.log("Tentative: recherche par titre et catégorie", { title: cleanTitle, category });
+          console.log("Stratégie 4: recherche par titre et catégorie", { title: cleanTitle, category });
           const withCategoryResponse = await axios.get(`${API_URL}/listings/search-results`, { 
             params: { 
               q: cleanTitle,
@@ -219,15 +228,15 @@ export const listingService = {
           });
           
           if (withCategoryResponse.data && withCategoryResponse.data.length > 0) {
-            console.log("Succès: Annonce trouvée avec titre et catégorie:", withCategoryResponse.data[0]);
+            console.log("Succès Stratégie 4: Annonce trouvée avec titre et catégorie:", withCategoryResponse.data[0]);
             return withCategoryResponse.data[0];
           }
         } catch (err) {
-          console.log("Échec: Recherche avec titre et catégorie a échoué", err);
+          console.log("Échec Stratégie 4: Recherche avec titre et catégorie a échoué", err);
         }
       }
       
-      console.log("Toutes les tentatives de recherche ont échoué");
+      console.log("Toutes les stratégies de recherche ont échoué");
       throw new Error("Annonce introuvable");
     } catch (error: any) {
       console.error("Erreur récupération annonce par titre:", error);

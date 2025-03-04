@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -20,7 +19,14 @@ import CategoryPage from "@/pages/CategoryPage";
 import SubcategoryPage from "@/pages/SubcategoryPage";
 import ListingDetail from "@/pages/ListingDetail";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1
+    }
+  }
+});
 
 function App() {
   return (
@@ -34,9 +40,16 @@ function App() {
               <Route path="/listings/create" element={<CreateListing />} />
               <Route path="/listings/my-searches" element={<MySearches />} />
               <Route path="/listings/favorites" element={<Favorites />} />
+              
               <Route path="/listings/:id" element={<ListingDetail />} />
+              
+              <Route path="/categories/:categoryId" element={<CategoryPage />} />
+              <Route path="/categories/:categoryId/:subcategoryId" element={<SubcategoryPage />} />
+              
               <Route path="/listings/categories/:category/:title" element={<ListingDetail />} />
               <Route path="/categories/:categoryId/:subcategoryId/:title" element={<ListingDetail />} />
+              <Route path="/categories/:categoryId/:title" element={<ListingDetail />} />
+              
               <Route path="/messages" element={<Messages />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -44,8 +57,6 @@ function App() {
               <Route path="/auth/signin" element={<SignIn />} />
               <Route path="/auth/signup" element={<SignUp />} />
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/categories/:categoryId" element={<CategoryPage />} />
-              <Route path="/categories/:categoryId/:subcategoryId" element={<SubcategoryPage />} />
             </Routes>
             <Footer />
             <Toaster />

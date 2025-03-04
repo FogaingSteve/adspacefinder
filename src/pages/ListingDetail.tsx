@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -29,19 +30,18 @@ const ListingDetail = () => {
   }>();
   const location = useLocation();
 
-  // Enhanced debugging for route parameters
+  // Enhanced debugging for route parameters and URL
   console.log("Current URL:", window.location.href);
-  console.log("Route params:", { id, title, category, categoryId, subcategoryId });
+  console.log("Route params from useParams:", { id, title, category, categoryId, subcategoryId });
   console.log("Location pathname:", location.pathname);
   
   // Determine which path pattern we're dealing with
-  const pathIncludesCategories = 
-    location.pathname.includes('/categories/') || 
-    location.pathname.includes('/listings/categories/');
+  const hasCategoryInPath = location.pathname.includes('/categories/') || 
+                           location.pathname.includes('/listings/categories/');
   
-  const fetchByTitle = pathIncludesCategories && !!title;
+  const fetchByTitle = hasCategoryInPath && !!title;
   
-  // Determine which category to use - prefer direct category param, fall back to categoryId
+  // Determine which category to use
   let categoryToUse = '';
   if (category) {
     categoryToUse = category;
@@ -62,13 +62,17 @@ const ListingDetail = () => {
     data: listingById, 
     isLoading: isListingByIdLoading, 
     error: listingByIdError 
-  } = useListingById(id || '', { enabled: !fetchByTitle && !!id });
+  } = useListingById(id || '', { 
+    enabled: !fetchByTitle && !!id,
+  });
   
   const {
     data: listingByTitle,
     isLoading: isListingByTitleLoading,
     error: listingByTitleError
-  } = useListingByTitle(title || '', categoryToUse, { enabled: fetchByTitle && !!title });
+  } = useListingByTitle(title || '', categoryToUse, { 
+    enabled: fetchByTitle && !!title,
+  });
 
   // Choose the appropriate data source
   const listing = fetchByTitle ? listingByTitle : listingById;

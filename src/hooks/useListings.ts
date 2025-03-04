@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingService } from "@/services/api";
 import { CreateListingDTO, Listing } from "@/types/listing";
@@ -114,15 +113,17 @@ export const useListingByTitle = (title: string, category: string, options = {})
         }
         
         // Pass the decoded title to the service
-        return await listingService.getListingByTitle(decodedTitle, category);
+        const listing = await listingService.getListingByTitle(decodedTitle, category);
+        console.log('Found listing by title:', listing);
+        return listing;
       } catch (error) {
         console.error("Error fetching listing by title:", error);
         throw error;
       }
     },
     enabled: !!title,
-    retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2,
+    staleTime: 1000 * 60,
     ...options
   });
 };
