@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingService } from "@/services/api";
 import { CreateListingDTO, Listing } from "@/types/listing";
@@ -82,21 +81,33 @@ export const useRecentListings = () => {
   });
 };
 
-export const useListingById = (id: string) => {
+export const useListingById = (id: string, options = {}) => {
   return useQuery({
     queryKey: ['listing', id],
-    queryFn: () => listingService.getListingById(id),
+    queryFn: async () => {
+      try {
+        console.log('Fetching listing by ID:', id);
+        return await listingService.getListingById(id);
+      } catch (error) {
+        console.error('Error in useListingById:', error);
+        throw error;
+      }
+    },
     enabled: !!id,
     retry: 1,
+    ...options
   });
 };
 
-export const useListingByTitle = (title: string, category: string) => {
+export const useListingByTitle = (title: string, category: string, options = {}) => {
   return useQuery({
     queryKey: ['listingByTitle', title, category],
     queryFn: async () => {
       try {
         console.log(`Fetching listing with title: "${title}" in category: "${category}"`);
+        if (!title) {
+          throw new Error('Titre manquant pour la recherche');
+        }
         return await listingService.getListingByTitle(title, category);
       } catch (error) {
         console.error("Error fetching listing by title:", error);
@@ -106,6 +117,7 @@ export const useListingByTitle = (title: string, category: string) => {
     enabled: !!title,
     retry: 1,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    ...options
   });
 };
 

@@ -29,34 +29,53 @@ const ListingDetail = () => {
   }>();
   const location = useLocation();
 
-  // Determine which path pattern we're dealing with
-  const fetchByTitle = location.pathname.includes('/categories/') || location.pathname.includes('/listings/categories/');
-  const currentCategory = category || categoryId || '';
-  
-  // If we're on a subcategory path, use the subcategoryId as the category
-  const categoryToUse = subcategoryId ? subcategoryId : currentCategory;
-  
+  // Enhanced debugging for route parameters
+  console.log("Current URL:", window.location.href);
   console.log("Route params:", { id, title, category, categoryId, subcategoryId });
-  console.log("Current path:", location.pathname);
-  console.log("Fetch by title?", fetchByTitle);
-  console.log("Category to use for query:", categoryToUse);
+  console.log("Location pathname:", location.pathname);
+  
+  // Determine which path pattern we're dealing with
+  const pathIncludesCategories = 
+    location.pathname.includes('/categories/') || 
+    location.pathname.includes('/listings/categories/');
+  
+  const fetchByTitle = pathIncludesCategories && !!title;
+  
+  // Determine which category to use - prefer direct category param, fall back to categoryId
+  let categoryToUse = '';
+  if (category) {
+    categoryToUse = category;
+  } else if (categoryId) {
+    categoryToUse = categoryId;
+  }
+  
+  // If subcategory is specified, use that instead
+  if (subcategoryId) {
+    categoryToUse = subcategoryId;
+  }
+  
+  console.log("fetchByTitle:", fetchByTitle);
+  console.log("categoryToUse:", categoryToUse);
 
+  // Choose which query to use based on path
   const { 
     data: listingById, 
     isLoading: isListingByIdLoading, 
     error: listingByIdError 
-  } = useListingById(id || '');
+  } = useListingById(id || '', { enabled: !fetchByTitle && !!id });
   
   const {
     data: listingByTitle,
     isLoading: isListingByTitleLoading,
     error: listingByTitleError
-  } = useListingByTitle(title || '', categoryToUse);
+  } = useListingByTitle(title || '', categoryToUse, { enabled: fetchByTitle && !!title });
 
+  // Choose the appropriate data source
   const listing = fetchByTitle ? listingByTitle : listingById;
   const isListingLoading = fetchByTitle ? isListingByTitleLoading : isListingByIdLoading;
   const listingError = fetchByTitle ? listingByTitleError : listingByIdError;
 
+  // Log details about the selected listing and errors
   useEffect(() => {
     if (listingError) {
       console.error("Error loading listing:", listingError);
