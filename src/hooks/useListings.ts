@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingService } from "@/services/api";
 import { CreateListingDTO, Listing } from "@/types/listing";
@@ -104,11 +105,16 @@ export const useListingByTitle = (title: string, category: string, options = {})
     queryKey: ['listingByTitle', title, category],
     queryFn: async () => {
       try {
-        console.log(`Fetching listing with title: "${title}" in category: "${category}"`);
-        if (!title) {
+        // Ensure title is decoded properly
+        const decodedTitle = decodeURIComponent(title);
+        console.log(`Fetching listing with decoded title: "${decodedTitle}" in category: "${category}"`);
+        
+        if (!decodedTitle) {
           throw new Error('Titre manquant pour la recherche');
         }
-        return await listingService.getListingByTitle(title, category);
+        
+        // Pass the decoded title to the service
+        return await listingService.getListingByTitle(decodedTitle, category);
       } catch (error) {
         console.error("Error fetching listing by title:", error);
         throw error;

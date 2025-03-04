@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
@@ -157,35 +156,64 @@ export const listingService = {
     try {
       console.log(`Recherche annonce par titre "${title}" dans catégorie "${category}"`);
       
-      // Decode and clean the title
-      const decodedTitle = decodeURIComponent(title).trim();
-      console.log(`Titre décodé: "${decodedTitle}"`);
+      // Make sure title is properly formatted
+      const cleanTitle = title.trim();
+      console.log(`Titre nettoyé: "${cleanTitle}"`);
       
-      // IMPORTANT CHANGE: First attempt - search by title only
-      // This will help find listings regardless of category issues
+      // IMPROVED APPROACH: First try direct API call for exact title match
       try {
-        console.log("Tentative: recherche par titre uniquement");
-        const titleOnlyResponse = await axios.get(`${API_URL}/listings/search-results`, { 
+        console.log("Tentative d'appel API direct pour correspondance exacte du titre");
+        const directResponse = await axios.get(`${API_URL}/listings/exact-title/${encodeURIComponent(cleanTitle)}`);
+        
+        if (directResponse.data && !Array.isArray(directResponse.data)) {
+          console.log("Succès: Annonce trouvée par appel direct:", directResponse.data);
+          return directResponse.data;
+        }
+      } catch (err) {
+        console.log("L'appel direct a échoué, tentative de recherche alternative", err);
+      }
+      
+      // FALLBACK 1: Try with exactTitle parameter
+      try {
+        console.log("Tentative: recherche par titre exacte");
+        const exactTitleResponse = await axios.get(`${API_URL}/listings/search-results`, { 
           params: { 
-            exactTitle: decodedTitle
+            exactTitle: cleanTitle
           }
         });
         
-        if (titleOnlyResponse.data && titleOnlyResponse.data.length > 0) {
-          console.log("Succès: Annonce trouvée par titre uniquement:", titleOnlyResponse.data[0]);
-          return titleOnlyResponse.data[0];
+        if (exactTitleResponse.data && exactTitleResponse.data.length > 0) {
+          console.log("Succès: Annonce trouvée par titre exacte:", exactTitleResponse.data[0]);
+          return exactTitleResponse.data[0];
         }
       } catch (err) {
-        console.log("Échec: Recherche par titre uniquement a échoué", err);
+        console.log("Échec: Recherche par titre exacte a échoué", err);
       }
       
-      // Second attempt: Try with title and category as fallback
+      // FALLBACK 2: Try with title as query parameter
+      try {
+        console.log("Tentative: recherche par titre comme query");
+        const queryResponse = await axios.get(`${API_URL}/listings/search-results`, { 
+          params: { 
+            q: cleanTitle
+          }
+        });
+        
+        if (queryResponse.data && queryResponse.data.length > 0) {
+          console.log("Succès: Annonce trouvée avec titre comme query:", queryResponse.data[0]);
+          return queryResponse.data[0];
+        }
+      } catch (err) {
+        console.log("Échec: Recherche avec titre comme query a échoué", err);
+      }
+      
+      // FALLBACK 3: Try with title and category
       if (category && category.length > 0) {
         try {
-          console.log("Tentative: recherche par titre et catégorie", { title: decodedTitle, category });
+          console.log("Tentative: recherche par titre et catégorie", { title: cleanTitle, category });
           const withCategoryResponse = await axios.get(`${API_URL}/listings/search-results`, { 
             params: { 
-              exactTitle: decodedTitle,
+              q: cleanTitle,
               category: category
             }
           });
@@ -197,23 +225,6 @@ export const listingService = {
         } catch (err) {
           console.log("Échec: Recherche avec titre et catégorie a échoué", err);
         }
-      }
-      
-      // Last resort: broader search with just the title as a query
-      try {
-        console.log("Tentative: recherche large avec titre comme query");
-        const broadResponse = await axios.get(`${API_URL}/listings/search-results`, { 
-          params: { 
-            q: decodedTitle
-          }
-        });
-        
-        if (broadResponse.data && broadResponse.data.length > 0) {
-          console.log("Succès: Annonce trouvée avec recherche large:", broadResponse.data[0]);
-          return broadResponse.data[0];
-        }
-      } catch (err) {
-        console.log("Échec: Recherche large a échoué", err);
       }
       
       console.log("Toutes les tentatives de recherche ont échoué");
