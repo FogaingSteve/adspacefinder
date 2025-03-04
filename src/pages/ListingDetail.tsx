@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -10,7 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation, Navigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,13 +30,15 @@ const ListingDetail = () => {
   const location = useLocation();
 
   // Determine which path pattern we're dealing with
-  const fetchByTitle = location.pathname.includes('/categories/');
+  const fetchByTitle = location.pathname.includes('/categories/') || location.pathname.includes('/listings/categories/');
   const currentCategory = category || categoryId || '';
   
   // If we're on a subcategory path, use the subcategoryId as the category
   const categoryToUse = subcategoryId ? subcategoryId : currentCategory;
   
   console.log("Route params:", { id, title, category, categoryId, subcategoryId });
+  console.log("Current path:", location.pathname);
+  console.log("Fetch by title?", fetchByTitle);
   console.log("Category to use for query:", categoryToUse);
 
   const { 
@@ -55,6 +56,15 @@ const ListingDetail = () => {
   const listing = fetchByTitle ? listingByTitle : listingById;
   const isListingLoading = fetchByTitle ? isListingByTitleLoading : isListingByIdLoading;
   const listingError = fetchByTitle ? listingByTitleError : listingByIdError;
+
+  useEffect(() => {
+    if (listingError) {
+      console.error("Error loading listing:", listingError);
+    }
+    if (listing) {
+      console.log("Listing loaded successfully:", listing);
+    }
+  }, [listing, listingError]);
 
   const { data: userData, isLoading: isUserLoading } = useQuery({
     queryKey: ['user', listing?.userId],

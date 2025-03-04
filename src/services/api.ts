@@ -157,36 +157,40 @@ export const listingService = {
       console.log(`Recherche annonce par titre "${title}" dans catégorie "${category}"`);
       const decodedTitle = decodeURIComponent(title).trim();
       
-      // First try with both title and category
+      // First attempt: Try to find by exact title without category constraint
       try {
         const response = await axios.get(`${API_URL}/listings/search-results`, { 
+          params: { 
+            exactTitle: decodedTitle
+          }
+        });
+        
+        if (response.data && response.data.length > 0) {
+          console.log("Annonce trouvée par titre:", response.data[0]);
+          return response.data[0];
+        }
+      } catch (err) {
+        console.log("Erreur lors de la recherche par titre uniquement");
+      }
+      
+      // Second attempt: Try with category as a fallback
+      try {
+        const fallbackResponse = await axios.get(`${API_URL}/listings/search-results`, { 
           params: { 
             exactTitle: decodedTitle,
             category: category
           }
         });
         
-        if (response.data && response.data.length > 0) {
-          console.log("Annonce trouvée avec titre et catégorie:", response.data[0]);
-          return response.data[0];
+        if (fallbackResponse.data && fallbackResponse.data.length > 0) {
+          console.log("Annonce trouvée avec titre et catégorie:", fallbackResponse.data[0]);
+          return fallbackResponse.data[0];
         }
       } catch (err) {
-        console.log("Erreur lors de la recherche avec titre et catégorie, tentative avec titre uniquement");
+        console.log("Erreur lors de la recherche avec titre et catégorie");
       }
       
-      // If not found, try with title only
-      const titleOnlyResponse = await axios.get(`${API_URL}/listings/search-results`, { 
-        params: { 
-          exactTitle: decodedTitle
-        }
-      });
-      
-      if (titleOnlyResponse.data && titleOnlyResponse.data.length > 0) {
-        console.log("Annonce trouvée avec titre uniquement:", titleOnlyResponse.data[0]);
-        return titleOnlyResponse.data[0];
-      }
-      
-      throw new Error("Annonce non trouvée");
+      throw new Error("Annonce introuvable");
     } catch (error: any) {
       console.error("Erreur récupération annonce par titre:", error);
       throw new Error("Cette annonce est introuvable");
