@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { MapPin } from "lucide-react";
 import { Button } from "./ui/button";
@@ -49,7 +50,7 @@ export const RecentListings = () => {
           >
             <div className="aspect-video relative overflow-hidden">
               <img
-                src={listing.images[0]}
+                src={listing.images[0] || "https://via.placeholder.com/400x300"}
                 alt={listing.title}
                 className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
               />

@@ -139,18 +139,37 @@ export const listingService = {
   async getListingById(id: string): Promise<Listing> {
     try {
       console.log(`Fetching listing with ID: ${id}`);
-      const response = await axios.get(`${API_URL}/listings/${id}`);
+      
+      // Vérification de l'ID valide
+      if (!id || id === 'undefined' || id === 'null') {
+        console.error('ID invalide fourni:', id);
+        throw new Error('ID d\'annonce invalide');
+      }
+      
+      // Nettoyage de l'ID pour éviter les problèmes
+      const cleanId = id.trim();
+      console.log(`Cleaned ID: ${cleanId}`);
+      
+      const response = await axios.get(`${API_URL}/listings/${cleanId}`);
+      
       if (!response.data) {
+        console.error('Réponse vide de l\'API pour ID:', cleanId);
         throw new Error('Annonce non trouvée');
       }
+      
       console.log("Listing found by ID:", response.data);
       return response.data;
     } catch (error: any) {
       console.error("Erreur récupération annonce par ID:", error);
+      console.error("Status:", error.response?.status);
+      console.error("Message:", error.response?.data?.message || error.message);
+      
       if (error.response?.status === 404) {
         throw new Error("Cette annonce n'existe pas ou a été supprimée");
       }
-      throw new Error("Erreur lors de la récupération de l'annonce: " + error.message);
+      
+      throw new Error("Erreur lors de la récupération de l'annonce: " + 
+        (error.response?.data?.message || error.message));
     }
   },
 

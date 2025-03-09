@@ -15,71 +15,29 @@ import { useParams, useLocation, Navigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { useListingById, useListingByTitle } from "@/hooks/useListings";
+import { useListingById } from "@/hooks/useListings";
 import { useQuery } from "@tanstack/react-query";
 
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
   const [showPhoneNumber, setShowPhoneNumber] = useState(false);
-  const { id, title, category, categoryId, subcategoryId } = useParams<{ 
-    id: string; 
-    title: string; 
-    category: string;
-    categoryId: string;
-    subcategoryId: string;
-  }>();
+  const { id } = useParams<{ id: string }>();
   const location = useLocation();
 
-  // Enhanced debugging for route parameters and URL
+  // Simplifié: Utilisons uniquement l'ID pour trouver l'annonce
   console.log("Current URL:", window.location.href);
-  console.log("Route params from useParams:", { id, title, category, categoryId, subcategoryId });
-  console.log("Location pathname:", location.pathname);
+  console.log("Listing ID from params:", id);
   
-  // Determine which path pattern we're dealing with
-  const hasCategoryInPath = location.pathname.includes('/categories/') || 
-                           location.pathname.includes('/listings/categories/');
-  
-  const fetchByTitle = hasCategoryInPath && !!title;
-  
-  // Determine which category to use
-  let categoryToUse = '';
-  if (category) {
-    categoryToUse = category;
-  } else if (categoryId) {
-    categoryToUse = categoryId;
-  }
-  
-  // If subcategory is specified, use that instead
-  if (subcategoryId) {
-    categoryToUse = subcategoryId;
-  }
-  
-  console.log("fetchByTitle:", fetchByTitle);
-  console.log("categoryToUse:", categoryToUse);
-
-  // Choose which query to use based on path
   const { 
-    data: listingById, 
-    isLoading: isListingByIdLoading, 
-    error: listingByIdError 
-  } = useListingById(id || '', { 
-    enabled: !fetchByTitle && !!id,
-  });
-  
-  const {
-    data: listingByTitle,
-    isLoading: isListingByTitleLoading,
-    error: listingByTitleError
-  } = useListingByTitle(title || '', categoryToUse, { 
-    enabled: fetchByTitle && !!title,
+    data: listing, 
+    isLoading: isListingLoading, 
+    error: listingError 
+  } = useListingById(id || '', {
+    enabled: !!id,
+    retry: 3, // Augmentons le nombre de tentatives
   });
 
-  // Choose the appropriate data source
-  const listing = fetchByTitle ? listingByTitle : listingById;
-  const isListingLoading = fetchByTitle ? isListingByTitleLoading : isListingByIdLoading;
-  const listingError = fetchByTitle ? listingByTitleError : listingByIdError;
-
-  // Log details about the selected listing and errors
+  // Log détaillé pour le débogage
   useEffect(() => {
     if (listingError) {
       console.error("Error loading listing:", listingError);
@@ -111,6 +69,7 @@ const ListingDetail = () => {
 
   const isLoading = isListingLoading || isUserLoading;
 
+  // Fonction pour partager l'annonce
   const handleShare = (platform: string) => {
     const url = window.location.href;
     const text = listing ? `Découvrez cette annonce : ${listing.title} - ${listing.price}€` : '';
@@ -124,11 +83,7 @@ const ListingDetail = () => {
     window.open(shareUrls[platform], "_blank");
   };
 
-  if (id === 'undefined' && !fetchByTitle) {
-    return <Navigate to="/" replace />;
-  }
-
-  if ((!id && !title) || (id === 'undefined' && !title)) {
+  if (!id) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert>
@@ -221,7 +176,7 @@ const ListingDetail = () => {
           <Card>
             <CardHeader>
               <h1 className="text-2xl font-bold">{listing.title}</h1>
-              <p className="text-2xl font-bold text-primary">{listing.price} €</p>
+              <p className="text-2xl font-bold text-primary">{listing.price} CFA</p>
               {listing.isSold && (
                 <span className="bg-red-500 text-white px-2 py-1 rounded text-sm">
                   Vendu

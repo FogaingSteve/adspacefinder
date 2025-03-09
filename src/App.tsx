@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -23,7 +24,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 1
+      retry: 2
     }
   }
 });
@@ -41,15 +42,14 @@ function App() {
               <Route path="/listings/my-searches" element={<MySearches />} />
               <Route path="/listings/favorites" element={<Favorites />} />
               
+              {/* Route simplifiée pour les détails d'annonce par ID */}
               <Route path="/listings/:id" element={<ListingDetail />} />
               
+              {/* Routes pour les catégories */}
               <Route path="/categories/:categoryId" element={<CategoryPage />} />
               <Route path="/categories/:categoryId/:subcategoryId" element={<SubcategoryPage />} />
               
-              <Route path="/listings/categories/:category/:title" element={<ListingDetail />} />
-              <Route path="/categories/:categoryId/:subcategoryId/:title" element={<ListingDetail />} />
-              <Route path="/categories/:categoryId/:title" element={<ListingDetail />} />
-              
+              {/* Autres routes */}
               <Route path="/messages" element={<Messages />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/dashboard" element={<Dashboard />} />

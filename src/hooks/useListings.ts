@@ -87,14 +87,17 @@ export const useListingById = (id: string, options = {}) => {
     queryFn: async () => {
       try {
         console.log('Fetching listing by ID:', id);
-        return await listingService.getListingById(id);
+        const listing = await listingService.getListingById(id);
+        console.log('Listing found:', listing);
+        return listing;
       } catch (error) {
         console.error('Error in useListingById:', error);
+        console.error('Stack trace:', new Error().stack);
         throw error;
       }
     },
-    enabled: !!id,
-    retry: 1,
+    enabled: !!id && id !== 'undefined',
+    retry: 2,
     ...options
   });
 };
@@ -104,7 +107,6 @@ export const useListingByTitle = (title: string, category: string, options = {})
     queryKey: ['listingByTitle', title, category],
     queryFn: async () => {
       try {
-        // Ensure title is decoded properly
         const decodedTitle = decodeURIComponent(title);
         console.log(`Fetching listing with decoded title: "${decodedTitle}" in category: "${category}"`);
         
@@ -112,7 +114,6 @@ export const useListingByTitle = (title: string, category: string, options = {})
           throw new Error('Titre manquant pour la recherche');
         }
         
-        // Pass the decoded title to the service
         const listing = await listingService.getListingByTitle(decodedTitle, category);
         console.log('Found listing by title:', listing);
         return listing;

@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { MapPin } from "lucide-react";
 import { Button } from "./ui/button";
@@ -54,10 +55,9 @@ export const CategoryListings = ({ categoryId, subcategoryId, limit = 8 }: Categ
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {listings.map((listing: any) => {
-        const listingUrl = subcategoryId 
-          ? `/categories/${categoryId}/${subcategoryId}/${listing._id}`
-          : `/listings/${listing._id}`;
-          
+        // Simplification: Toujours utiliser le même format d'URL pour les annonces
+        const listingUrl = `/listings/${listing._id}`;
+        
         console.log(`Creating link for listing ${listing.title} with URL: ${listingUrl}`);
         
         return (
