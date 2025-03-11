@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -10,12 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useState, useEffect } from "react";
-import { useParams, useLocation, Navigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { useParams, useLocation } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useListingById } from "@/hooks/useListings";
-import { useQuery } from "@tanstack/react-query";
 
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
@@ -28,7 +27,7 @@ const ListingDetail = () => {
   
   const { 
     data: listing, 
-    isLoading: isListingLoading, 
+    isLoading, 
     error: listingError 
   } = useListingById(id || '', {
     enabled: !!id,
@@ -43,28 +42,6 @@ const ListingDetail = () => {
       console.log("Listing loaded successfully:", listing);
     }
   }, [listing, listingError]);
-
-  const { data: userData, isLoading: isUserLoading } = useQuery({
-    queryKey: ['user', listing?.userId],
-    queryFn: async () => {
-      if (!listing?.userId) {
-        throw new Error('No user ID provided');
-      }
-      
-      const { data, error } = await supabase
-        .from('users')
-        .select('full_name, email, phone')
-        .eq('id', listing.userId)
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!listing?.userId,
-    retry: false
-  });
-
-  const isLoading = isListingLoading || isUserLoading;
 
   const handleShare = (platform: string) => {
     const url = window.location.href;
@@ -123,7 +100,7 @@ const ListingDetail = () => {
     );
   }
 
-  if (!listing || !userData) {
+  if (!listing) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert>
@@ -136,6 +113,7 @@ const ListingDetail = () => {
   }
 
   const hasImages = listing?.images && listing.images.length > 0;
+  const seller = listing.seller || listing.user || { full_name: 'Utilisateur inconnu', email: '', phone: '' };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -201,7 +179,7 @@ const ListingDetail = () => {
                 <div>
                   <h2 className="font-semibold mb-2">Date de publication</h2>
                   <p className="text-gray-600">
-                    {new Date(listing.createdAt).toLocaleDateString("fr-FR", {
+                    {new Date(listing.createdAt || "").toLocaleDateString("fr-FR", {
                       year: "numeric",
                       month: "long",
                       day: "numeric"
@@ -221,17 +199,17 @@ const ListingDetail = () => {
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <p className="font-medium">{listing?.user?.full_name || 'Utilisateur inconnu'}</p>
-                  <p className="text-gray-600">{listing?.user?.email || ''}</p>
+                  <p className="font-medium">{seller.full_name}</p>
+                  <p className="text-gray-600">{seller.email}</p>
                 </div>
                 <div className="flex flex-col gap-3">
-                  {listing?.user?.phone && (
+                  {seller.phone && (
                     <Button 
                       className="w-full"
                       onClick={() => setShowSafetyDialog(true)}
                     >
                       <Phone className="mr-2" />
-                      {showPhoneNumber ? listing.user.phone : "Afficher le numéro"}
+                      {showPhoneNumber ? seller.phone : "Afficher le numéro"}
                     </Button>
                   )}
                   <div className="flex gap-2">
