@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -212,7 +213,7 @@ const ListingDetail = () => {
               <div className="space-y-4">
                 <div className="border-b pb-4">
                   <p className="font-medium text-lg">{userInfo.full_name}</p>
-                  {userInfo.email !== 'Email non disponible' && (
+                  {userInfo.email && userInfo.email !== 'Email non disponible' && (
                     <p className="text-gray-600">{userInfo.email}</p>
                   )}
                 </div>
