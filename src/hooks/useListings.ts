@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingService } from "@/services/api";
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 export const useCreateListing = () => {
   const queryClient = useQueryClient();
@@ -85,19 +86,48 @@ export const useListingById = (id: string, options = {}) => {
   return useQuery({
     queryKey: ['listing', id],
     queryFn: async () => {
-      try {
-        console.log('Fetching listing by ID:', id);
-        const listing = await listingService.getListingById(id);
-        console.log('Listing found:', listing);
-        return listing;
-      } catch (error) {
-        console.error('Error in useListingById:', error);
-        console.error('Stack trace:', new Error().stack);
-        throw error;
+      console.log('Fetching listing with ID:', id);
+      
+      const { data: listing, error: listingError } = await supabase
+        .from('listings')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (listingError) {
+        console.error('Error fetching listing:', listingError);
+        throw new Error('Cette annonce est introuvable');
       }
+
+      if (!listing) {
+        throw new Error('Cette annonce est introuvable');
+      }
+
+      // Récupérer les informations de l'utilisateur
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('full_name, email, phone')
+        .eq('user_id', listing.userId) // Assurez-vous que la colonne correspond à votre schéma
+        .single();
+
+      if (userError) {
+        console.error('Error fetching user data:', userError);
+        // Ne pas bloquer l'affichage de l'annonce si les données utilisateur ne sont pas trouvées
+        return {
+          ...listing,
+          user: {
+            full_name: 'Utilisateur inconnu',
+            email: '',
+            phone: ''
+          }
+        };
+      }
+
+      return {
+        ...listing,
+        user: userData
+      };
     },
-    enabled: !!id && id !== 'undefined',
-    retry: 2,
     ...options
   });
 };

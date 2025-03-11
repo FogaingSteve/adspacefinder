@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -24,7 +23,6 @@ const ListingDetail = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
 
-  // Simplifié: Utilisons uniquement l'ID pour trouver l'annonce
   console.log("Current URL:", window.location.href);
   console.log("Listing ID from params:", id);
   
@@ -34,10 +32,9 @@ const ListingDetail = () => {
     error: listingError 
   } = useListingById(id || '', {
     enabled: !!id,
-    retry: 3, // Augmentons le nombre de tentatives
+    retry: 3,
   });
 
-  // Log détaillé pour le débogage
   useEffect(() => {
     if (listingError) {
       console.error("Error loading listing:", listingError);
@@ -69,7 +66,6 @@ const ListingDetail = () => {
 
   const isLoading = isListingLoading || isUserLoading;
 
-  // Fonction pour partager l'annonce
   const handleShare = (platform: string) => {
     const url = window.location.href;
     const text = listing ? `Découvrez cette annonce : ${listing.title} - ${listing.price}€` : '';
@@ -225,17 +221,17 @@ const ListingDetail = () => {
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <p className="font-medium">{userData.full_name}</p>
-                  <p className="text-gray-600">{userData.email}</p>
+                  <p className="font-medium">{listing?.user?.full_name || 'Utilisateur inconnu'}</p>
+                  <p className="text-gray-600">{listing?.user?.email || ''}</p>
                 </div>
                 <div className="flex flex-col gap-3">
-                  {userData.phone && (
+                  {listing?.user?.phone && (
                     <Button 
                       className="w-full"
                       onClick={() => setShowSafetyDialog(true)}
                     >
                       <Phone className="mr-2" />
-                      {showPhoneNumber ? userData.phone : "Afficher le numéro"}
+                      {showPhoneNumber ? listing.user.phone : "Afficher le numéro"}
                     </Button>
                   )}
                   <div className="flex gap-2">
