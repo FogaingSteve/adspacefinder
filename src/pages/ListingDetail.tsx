@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -113,7 +112,11 @@ const ListingDetail = () => {
   }
 
   const hasImages = listing?.images && listing.images.length > 0;
-  const seller = listing.seller || listing.user || { full_name: 'Utilisateur inconnu', email: '', phone: '' };
+  const userInfo = listing?.user || {
+    full_name: 'Utilisateur inconnu',
+    email: '',
+    phone: ''
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -199,17 +202,17 @@ const ListingDetail = () => {
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <p className="font-medium">{seller.full_name}</p>
-                  <p className="text-gray-600">{seller.email}</p>
+                  <p className="font-medium">{userInfo.full_name}</p>
+                  <p className="text-gray-600">{userInfo.email}</p>
                 </div>
                 <div className="flex flex-col gap-3">
-                  {seller.phone && (
+                  {userInfo.phone && (
                     <Button 
                       className="w-full"
                       onClick={() => setShowSafetyDialog(true)}
                     >
                       <Phone className="mr-2" />
-                      {showPhoneNumber ? seller.phone : "Afficher le numéro"}
+                      {showPhoneNumber ? userInfo.phone : "Afficher le numéro"}
                     </Button>
                   )}
                   <div className="flex gap-2">

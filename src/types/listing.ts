@@ -11,6 +11,11 @@ export interface Listing {
   isSold?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  user?: {
+    full_name: string;
+    email: string;
+    phone?: string;
+  };
 }
 
 export interface CreateListingDTO {
