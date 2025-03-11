@@ -39,6 +39,7 @@ const ListingDetail = () => {
     }
     if (listing) {
       console.log("Listing loaded successfully:", listing);
+      console.log("Vendor information:", listing.user);
     }
   }, [listing, listingError]);
 
