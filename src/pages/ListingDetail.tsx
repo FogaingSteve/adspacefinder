@@ -55,6 +55,12 @@ const ListingDetail = () => {
     window.open(shareUrls[platform], "_blank");
   };
 
+  const defaultUserInfo = {
+    full_name: 'Information vendeur non disponible',
+    email: 'Email non disponible',
+    phone: undefined
+  };
+
   if (!id) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -112,11 +118,9 @@ const ListingDetail = () => {
   }
 
   const hasImages = listing?.images && listing.images.length > 0;
-  const userInfo = listing?.user || {
-    full_name: 'Utilisateur inconnu',
-    email: '',
-    phone: ''
-  };
+  const userInfo = listing?.user || defaultUserInfo;
+
+  const defaultImageUrl = 'https://placehold.co/400x300/e2e8f0/1e293b?text=Image+non+disponible';
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -134,7 +138,7 @@ const ListingDetail = () => {
                         className="object-cover w-full h-full"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.src = "https://via.placeholder.com/400x300?text=Image+non+disponible";
+                          target.src = defaultImageUrl;
                         }}
                       />
                     </div>
@@ -146,7 +150,11 @@ const ListingDetail = () => {
             </Carousel>
           ) : (
             <div className="aspect-video relative overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center">
-              <p className="text-gray-400">Aucune image disponible</p>
+              <img 
+                src={defaultImageUrl}
+                alt="Image non disponible"
+                className="object-contain w-full h-full"
+              />
             </div>
           )}
 
@@ -201,9 +209,11 @@ const ListingDetail = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div>
-                  <p className="font-medium">{userInfo.full_name}</p>
-                  <p className="text-gray-600">{userInfo.email}</p>
+                <div className="border-b pb-4">
+                  <p className="font-medium text-lg">{userInfo.full_name}</p>
+                  {userInfo.email !== 'Email non disponible' && (
+                    <p className="text-gray-600">{userInfo.email}</p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-3">
                   {userInfo.phone && (
