@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -15,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useListingById } from "@/hooks/useListings";
 import { UserInfo } from "@/types/listing";
+import { toast } from "sonner";
 
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
@@ -41,6 +43,9 @@ const ListingDetail = () => {
     if (listing) {
       console.log("Listing loaded successfully:", listing);
       console.log("Vendor information:", listing.user);
+      if (!listing.user || !listing.user.full_name) {
+        toast.error("Impossible de charger les informations du vendeur");
+      }
     }
   }, [listing, listingError]);
 

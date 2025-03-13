@@ -157,6 +157,31 @@ export const listingService = {
         throw new Error('Annonce non trouvée');
       }
       
+      // Si on a une réponse mais que user est undefined ou null, vérifions l'utilisateur dans Supabase
+      if (response.data && response.data.userId && (!response.data.user || Object.keys(response.data.user || {}).length === 0)) {
+        try {
+          console.log("Fetching user info from Supabase for userId:", response.data.userId);
+          const { data: userData, error } = await supabase
+            .from('profiles')
+            .select('full_name, email, phone')
+            .eq('id', response.data.userId)
+            .single();
+            
+          if (error) {
+            console.error("Error fetching user data from Supabase:", error);
+          } else if (userData) {
+            console.log("User data fetched from Supabase:", userData);
+            response.data.user = {
+              full_name: userData.full_name || 'Utilisateur',
+              email: userData.email || '',
+              phone: userData.phone || ''
+            };
+          }
+        } catch (userError) {
+          console.error("Error during Supabase user fetch:", userError);
+        }
+      }
+      
       console.log("Listing found by ID:", response.data);
       return response.data;
     } catch (error: any) {

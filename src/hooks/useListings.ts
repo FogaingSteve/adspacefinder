@@ -91,6 +91,12 @@ export const useListingById = (id: string, options = {}) => {
         const listing = await listingService.getListingById(id);
         console.log('Listing found:', listing);
         console.log('Vendor information:', listing?.user);
+        
+        // Validate user information
+        if (!listing.user || Object.keys(listing.user).length === 0) {
+          console.warn('No vendor information available for listing:', id);
+        }
+        
         return listing;
       } catch (error) {
         console.error('Error in useListingById:', error);
