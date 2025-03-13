@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingService } from "@/services/api";
 import { CreateListingDTO, Listing } from "@/types/listing";
@@ -89,6 +90,7 @@ export const useListingById = (id: string, options = {}) => {
         console.log('Fetching listing by ID:', id);
         const listing = await listingService.getListingById(id);
         console.log('Listing found:', listing);
+        console.log('Vendor information:', listing?.user);
         return listing;
       } catch (error) {
         console.error('Error in useListingById:', error);

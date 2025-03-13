@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -15,6 +14,7 @@ import { useParams, useLocation } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useListingById } from "@/hooks/useListings";
+import { UserInfo } from "@/types/listing";
 
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
@@ -57,7 +57,7 @@ const ListingDetail = () => {
     window.open(shareUrls[platform], "_blank");
   };
 
-  const defaultUserInfo = {
+  const defaultUserInfo: UserInfo = {
     full_name: 'Information vendeur non disponible',
     email: 'Email non disponible',
     phone: undefined
@@ -112,16 +112,24 @@ const ListingDetail = () => {
       <div className="container mx-auto px-4 py-8">
         <Alert>
           <AlertDescription>
-            Cette annonce n'existe pas ou a été supprimée.
+            Cette annonce n'existe pas ou a ��té supprimée.
           </AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  const hasImages = listing?.images && listing.images.length > 0;
   const userInfo = listing?.user || defaultUserInfo;
+  const hasValidUser = !!listing?.user && (
+    !!listing.user.full_name || 
+    !!listing.user.email || 
+    !!listing.user.phone
+  );
 
+  console.log("User info to display:", userInfo);
+  console.log("Has valid user:", hasValidUser);
+
+  const hasImages = listing?.images && listing.images.length > 0;
   const defaultImageUrl = 'https://placehold.co/400x300/e2e8f0/1e293b?text=Image+non+disponible';
 
   return (
@@ -212,13 +220,17 @@ const ListingDetail = () => {
             <CardContent>
               <div className="space-y-4">
                 <div className="border-b pb-4">
-                  <p className="font-medium text-lg">{userInfo.full_name}</p>
-                  {userInfo.email && userInfo.email !== 'Email non disponible' && (
+                  <p className="font-medium text-lg">
+                    {hasValidUser 
+                      ? userInfo.full_name || 'Nom non disponible' 
+                      : 'Information vendeur non disponible'}
+                  </p>
+                  {hasValidUser && userInfo.email && (
                     <p className="text-gray-600">{userInfo.email}</p>
                   )}
                 </div>
                 <div className="flex flex-col gap-3">
-                  {userInfo.phone && (
+                  {hasValidUser && userInfo.phone && (
                     <Button 
                       className="w-full"
                       onClick={() => setShowSafetyDialog(true)}
