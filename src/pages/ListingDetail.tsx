@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -39,13 +38,6 @@ const ListingDetail = () => {
   useEffect(() => {
     if (listingError) {
       console.error("Error loading listing:", listingError);
-    }
-    if (listing) {
-      console.log("Listing loaded successfully:", listing);
-      console.log("Vendor information:", listing.user);
-      if (!listing.user || !listing.user.full_name) {
-        toast.error("Impossible de charger les informations du vendeur");
-      }
     }
   }, [listing, listingError]);
 
@@ -124,12 +116,8 @@ const ListingDetail = () => {
     );
   }
 
-  const userInfo = listing?.user || defaultUserInfo;
-  const hasValidUser = !!listing?.user && (
-    !!listing.user.full_name || 
-    !!listing.user.email || 
-    !!listing.user.phone
-  );
+  const userInfo = listing.user || defaultUserInfo;
+  const hasValidUser = !!userInfo.full_name && userInfo.full_name !== 'Information vendeur non disponible';
 
   console.log("User info to display:", userInfo);
   console.log("Has valid user:", hasValidUser);

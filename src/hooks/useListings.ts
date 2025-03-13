@@ -1,8 +1,8 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingService } from "@/services/api";
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 export const useCreateListing = () => {
   const queryClient = useQueryClient();
@@ -90,12 +90,40 @@ export const useListingById = (id: string, options = {}) => {
         console.log('Fetching listing by ID:', id);
         const listing = await listingService.getListingById(id);
         console.log('Listing found:', listing);
-        console.log('Vendor information:', listing?.user);
         
-        // Validate user information
-        if (!listing.user || Object.keys(listing.user).length === 0) {
-          console.warn('No vendor information available for listing:', id);
+        if (listing && listing.userId) {
+          console.log('Fetching user profile for userId:', listing.userId);
+          
+          const { data: userData, error } = await supabase
+            .from('profiles')
+            .select('full_name, email, phone')
+            .eq('id', listing.userId)
+            .single();
+            
+          if (error) {
+            console.error('Error fetching vendor profile:', error);
+          } else if (userData) {
+            console.log('Vendor profile retrieved from Supabase:', userData);
+            
+            listing.user = {
+              full_name: userData.full_name || 'Utilisateur',
+              email: userData.email || '',
+              phone: userData.phone || ''
+            };
+          } else {
+            console.warn('No vendor profile found in Supabase for userId:', listing.userId);
+            listing.user = {
+              full_name: 'Information vendeur non disponible',
+              email: 'Email non disponible',
+              phone: undefined
+            };
+          }
+        } else {
+          console.warn('No userId available for this listing, cannot fetch vendor information');
         }
+        
+        console.log('Final listing with user information:', listing);
+        console.log('Vendor information:', listing?.user);
         
         return listing;
       } catch (error) {
