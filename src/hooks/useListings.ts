@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingService } from "@/services/api";
 import { CreateListingDTO, Listing } from "@/types/listing";
@@ -91,6 +92,7 @@ export const useListingById = (id: string, options = {}) => {
         const listing = await listingService.getListingById(id);
         console.log('Listing found:', listing);
         
+        // Always fetch the vendor information directly from Supabase
         if (listing && listing.userId) {
           console.log('Fetching user profile for userId:', listing.userId);
           
@@ -102,16 +104,20 @@ export const useListingById = (id: string, options = {}) => {
             
           if (error) {
             console.error('Error fetching vendor profile:', error);
+            toast.error("Impossible de charger les informations du vendeur");
           } else if (userData) {
             console.log('Vendor profile retrieved from Supabase:', userData);
             
+            // Override any existing user data with freshly fetched data
             listing.user = {
               full_name: userData.full_name || 'Utilisateur',
               email: userData.email || '',
               phone: userData.phone || ''
             };
+            console.log('Updated user information:', listing.user);
           } else {
             console.warn('No vendor profile found in Supabase for userId:', listing.userId);
+            toast.error("Information du vendeur non trouvée");
             listing.user = {
               full_name: 'Information vendeur non disponible',
               email: 'Email non disponible',
@@ -120,10 +126,8 @@ export const useListingById = (id: string, options = {}) => {
           }
         } else {
           console.warn('No userId available for this listing, cannot fetch vendor information');
+          toast.error("ID vendeur manquant pour cette annonce");
         }
-        
-        console.log('Final listing with user information:', listing);
-        console.log('Vendor information:', listing?.user);
         
         return listing;
       } catch (error) {
