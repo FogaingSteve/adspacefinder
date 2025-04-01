@@ -92,19 +92,53 @@ export const useListingById = (id: string, options = {}) => {
         const listing = await listingService.getListingById(id);
         console.log('Listing found:', listing);
         
-        // Always fetch the vendor information directly from Supabase
+        // Try to fetch the vendor information directly from Supabase
         if (listing && listing.userId) {
           console.log('Fetching user profile for userId:', listing.userId);
           
+          // Using the 'users' table instead of 'profiles' since that's the correct table name
           const { data: userData, error } = await supabase
-            .from('profiles')
+            .from('users')
             .select('full_name, email, phone')
             .eq('id', listing.userId)
             .single();
             
           if (error) {
             console.error('Error fetching vendor profile:', error);
-            toast.error("Impossible de charger les informations du vendeur");
+            // If it's a table not found error, we'll try with 'profiles' as fallback
+            if (error.code === '42P01') {
+              console.log('Trying alternate table name "auth.users"...');
+              
+              // Try with auth.users table as fallback
+              const { data: authUserData, error: authError } = await supabase
+                .from('auth.users')
+                .select('email')
+                .eq('id', listing.userId)
+                .single();
+                
+              if (!authError && authUserData) {
+                console.log('User found in auth.users:', authUserData);
+                listing.user = {
+                  full_name: 'Utilisateur',
+                  email: authUserData.email || '',
+                  phone: ''
+                };
+              } else {
+                console.error('Failed to find user in auth.users:', authError);
+                listing.user = {
+                  full_name: 'Information vendeur non disponible',
+                  email: 'Email non disponible',
+                  phone: undefined
+                };
+              }
+            } else {
+              toast.error("Impossible de charger les informations du vendeur");
+              listing.user = {
+                full_name: 'Information vendeur non disponible',
+                email: 'Email non disponible',
+                phone: undefined
+              };
+            }
           } else if (userData) {
             console.log('Vendor profile retrieved from Supabase:', userData);
             
