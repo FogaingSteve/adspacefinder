@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingService } from "@/services/api";
 import { CreateListingDTO, Listing } from "@/types/listing";
@@ -96,67 +95,66 @@ export const useListingById = (id: string, options = {}) => {
         if (listing && listing.userId) {
           console.log('Fetching user profile for userId:', listing.userId);
           
-          // Using the 'users' table instead of 'profiles' since that's the correct table name
-          const { data: userData, error } = await supabase
-            .from('users')
-            .select('full_name, email, phone')
-            .eq('id', listing.userId)
-            .single();
+          try {
+            // Using the auth.users table which should exist by default
+            const { data: authUserData, error: authError } = await supabase.auth.admin
+              .getUserById(listing.userId);
             
-          if (error) {
-            console.error('Error fetching vendor profile:', error);
-            // If it's a table not found error, we'll try with 'profiles' as fallback
-            if (error.code === '42P01') {
-              console.log('Trying alternate table name "auth.users"...');
+            if (!authError && authUserData && authUserData.user) {
+              console.log('User found in auth.users:', authUserData.user);
+              const userData = authUserData.user;
               
-              // Try with auth.users table as fallback
-              const { data: authUserData, error: authError } = await supabase
-                .from('auth.users')
-                .select('email')
-                .eq('id', listing.userId)
-                .single();
-                
-              if (!authError && authUserData) {
-                console.log('User found in auth.users:', authUserData);
-                listing.user = {
-                  full_name: 'Utilisateur',
-                  email: authUserData.email || '',
-                  phone: ''
-                };
-              } else {
-                console.error('Failed to find user in auth.users:', authError);
-                listing.user = {
-                  full_name: 'Information vendeur non disponible',
-                  email: 'Email non disponible',
-                  phone: undefined
-                };
-              }
+              listing.user = {
+                full_name: userData.user_metadata?.full_name || 
+                           userData.user_metadata?.name || 
+                           'Utilisateur',
+                email: userData.email || '',
+                phone: userData.user_metadata?.phone || ''
+              };
+              console.log('Updated user information:', listing.user);
             } else {
-              toast.error("Impossible de charger les informations du vendeur");
+              console.error('Failed to find user in auth:', authError);
+              toast.error("Information du vendeur non trouvée");
               listing.user = {
                 full_name: 'Information vendeur non disponible',
                 email: 'Email non disponible',
                 phone: undefined
               };
             }
-          } else if (userData) {
-            console.log('Vendor profile retrieved from Supabase:', userData);
+          } catch (error) {
+            console.error("Error fetching user data:", error);
             
-            // Override any existing user data with freshly fetched data
-            listing.user = {
-              full_name: userData.full_name || 'Utilisateur',
-              email: userData.email || '',
-              phone: userData.phone || ''
-            };
-            console.log('Updated user information:', listing.user);
-          } else {
-            console.warn('No vendor profile found in Supabase for userId:', listing.userId);
-            toast.error("Information du vendeur non trouvée");
-            listing.user = {
-              full_name: 'Information vendeur non disponible',
-              email: 'Email non disponible',
-              phone: undefined
-            };
+            // Fallback to fetch from custom user table if it exists
+            try {
+              const { data: userData, error: userError } = await supabase
+                .from('user_profiles')
+                .select('*')
+                .eq('id', listing.userId)
+                .single();
+                
+              if (!userError && userData) {
+                console.log('User found in user_profiles:', userData);
+                listing.user = {
+                  full_name: userData.full_name || userData.name || 'Utilisateur',
+                  email: userData.email || '',
+                  phone: userData.phone || ''
+                };
+              } else {
+                console.error('Failed to find user in custom tables:', userError);
+                listing.user = {
+                  full_name: 'Information vendeur non disponible',
+                  email: 'Email non disponible',
+                  phone: undefined
+                };
+              }
+            } catch (fallbackError) {
+              console.error("All attempts to fetch user failed:", fallbackError);
+              listing.user = {
+                full_name: 'Information vendeur non disponible',
+                email: 'Email non disponible',
+                phone: undefined
+              };
+            }
           }
         } else {
           console.warn('No userId available for this listing, cannot fetch vendor information');
