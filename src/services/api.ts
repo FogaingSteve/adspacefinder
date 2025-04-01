@@ -158,31 +158,81 @@ export const listingService = {
       }
       
       // Si on a une réponse mais que user est undefined ou null, vérifions l'utilisateur dans Supabase
-      if (response.data && response.data.userId && (!response.data.user || Object.keys(response.data.user || {}).length === 0)) {
+      if (response.data && response.data.userId) {
         try {
-          console.log("Fetching user info from Supabase for userId:", response.data.userId);
-          const { data: userData, error } = await supabase
-            .from('profiles')
-            .select('full_name, email, phone')
-            .eq('id', response.data.userId)
-            .single();
+          console.log("Fetching user info for userId:", response.data.userId);
+          
+          // Récupérer la session actuelle pour avoir le token d'accès
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (!sessionData || !sessionData.session) {
+            console.log("No active session found, user info may be limited");
+          }
+          
+          // Essayer de récupérer les informations utilisateur de la table profiles si elle existe
+          try {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('full_name, email, phone')
+              .eq('id', response.data.userId)
+              .single();
+              
+            if (!profileError && profileData) {
+              console.log("User profile found:", profileData);
+              response.data.user = {
+                full_name: profileData.full_name || 'Utilisateur',
+                email: profileData.email || 'Email non disponible',
+                phone: profileData.phone || undefined
+              };
+              return response.data;
+            } else {
+              console.log("Profile table error or no data:", profileError);
+            }
+          } catch (profileErr) {
+            console.error("Error querying profiles table:", profileErr);
+          }
+          
+          // Fallback: utiliser les métadonnées de l'utilisateur connecté si c'est le même ID
+          if (sessionData && sessionData.session && sessionData.session.user) {
+            const currentUser = sessionData.session.user;
             
-          if (error) {
-            console.error("Error fetching user data from Supabase:", error);
-          } else if (userData) {
-            console.log("User data fetched from Supabase:", userData);
+            if (currentUser.id === response.data.userId) {
+              console.log("Current user is the vendor, using session data");
+              response.data.user = {
+                full_name: currentUser.user_metadata?.full_name || 
+                           currentUser.user_metadata?.name || 
+                           'Utilisateur',
+                email: currentUser.email || 'Email non disponible',
+                phone: currentUser.user_metadata?.phone || undefined
+              };
+            } else {
+              console.log("Current user is not the vendor");
+              // Utilisateur par défaut si rien d'autre ne fonctionne
+              response.data.user = {
+                full_name: 'Information vendeur non disponible',
+                email: 'Email non disponible',
+                phone: undefined
+              };
+            }
+          } else {
+            console.log("No session available");
             response.data.user = {
-              full_name: userData.full_name || 'Utilisateur',
-              email: userData.email || '',
-              phone: userData.phone || ''
+              full_name: 'Information vendeur non disponible',
+              email: 'Email non disponible',
+              phone: undefined
             };
           }
+          
         } catch (userError) {
-          console.error("Error during Supabase user fetch:", userError);
+          console.error("Error during user data retrieval:", userError);
+          response.data.user = {
+            full_name: 'Information vendeur non disponible',
+            email: 'Email non disponible',
+            phone: undefined
+          };
         }
       }
       
-      console.log("Listing found by ID:", response.data);
+      console.log("Final listing data with user info:", response.data);
       return response.data;
     } catch (error: any) {
       console.error("Erreur récupération annonce par ID:", error);

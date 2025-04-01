@@ -91,30 +91,71 @@ export const useListingById = (id: string, options = {}) => {
         const listing = await listingService.getListingById(id);
         console.log('Listing found:', listing);
         
-        // Try to fetch the vendor information directly from Supabase
+        // Try to fetch the vendor information from Supabase
         if (listing && listing.userId) {
           console.log('Fetching user profile for userId:', listing.userId);
           
           try {
-            // Using the auth.users table which should exist by default
-            const { data: authUserData, error: authError } = await supabase.auth.admin
-              .getUserById(listing.userId);
+            // Récupérer directement depuis l'API supabase.auth.getUser
+            const { data, error } = await supabase.auth.getUser();
             
-            if (!authError && authUserData && authUserData.user) {
-              console.log('User found in auth.users:', authUserData.user);
-              const userData = authUserData.user;
+            if (error) {
+              console.error('Error getting current user:', error);
+              throw error;
+            }
+            
+            if (data && data.user) {
+              console.log('Current user:', data.user);
               
-              listing.user = {
-                full_name: userData.user_metadata?.full_name || 
-                           userData.user_metadata?.name || 
-                           'Utilisateur',
-                email: userData.email || '',
-                phone: userData.user_metadata?.phone || ''
-              };
-              console.log('Updated user information:', listing.user);
+              // Tenter de récupérer l'utilisateur spécifique depuis supabase
+              const { data: userData, error: userError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', listing.userId)
+                .single();
+              
+              if (userError) {
+                console.error('Error fetching vendor profile:', userError);
+                
+                // Si l'erreur est que la table profiles n'existe pas, utiliser les metadonnées d'auth
+                if (userError.message.includes("does not exist")) {
+                  console.log('Trying to get user data from auth metadata');
+                  
+                  // Utiliser getSession pour récupérer l'utilisateur, pas besoin de l'admin API
+                  const { data: sessionData } = await supabase.auth.getSession();
+                  
+                  if (sessionData && sessionData.session) {
+                    const user = sessionData.session.user;
+                    
+                    if (user && user.id === listing.userId) {
+                      console.log('User data from session:', user);
+                      listing.user = {
+                        full_name: user.user_metadata?.full_name || 
+                                  user.user_metadata?.name || 
+                                  'Utilisateur',
+                        email: user.email || 'Email non disponible',
+                        phone: user.user_metadata?.phone || undefined
+                      };
+                    } else {
+                      // Fallback pour un autre utilisateur
+                      listing.user = {
+                        full_name: 'Information vendeur non disponible',
+                        email: 'Email non disponible',
+                        phone: undefined
+                      };
+                    }
+                  }
+                }
+              } else if (userData) {
+                console.log('Vendor profile found:', userData);
+                listing.user = {
+                  full_name: userData.full_name || userData.name || 'Utilisateur',
+                  email: userData.email || 'Email non disponible',
+                  phone: userData.phone || undefined
+                };
+              }
             } else {
-              console.error('Failed to find user in auth:', authError);
-              toast.error("Information du vendeur non trouvée");
+              console.log('No current user found');
               listing.user = {
                 full_name: 'Information vendeur non disponible',
                 email: 'Email non disponible',
@@ -123,42 +164,21 @@ export const useListingById = (id: string, options = {}) => {
             }
           } catch (error) {
             console.error("Error fetching user data:", error);
-            
-            // Fallback to fetch from custom user table if it exists
-            try {
-              const { data: userData, error: userError } = await supabase
-                .from('user_profiles')
-                .select('*')
-                .eq('id', listing.userId)
-                .single();
-                
-              if (!userError && userData) {
-                console.log('User found in user_profiles:', userData);
-                listing.user = {
-                  full_name: userData.full_name || userData.name || 'Utilisateur',
-                  email: userData.email || '',
-                  phone: userData.phone || ''
-                };
-              } else {
-                console.error('Failed to find user in custom tables:', userError);
-                listing.user = {
-                  full_name: 'Information vendeur non disponible',
-                  email: 'Email non disponible',
-                  phone: undefined
-                };
-              }
-            } catch (fallbackError) {
-              console.error("All attempts to fetch user failed:", fallbackError);
-              listing.user = {
-                full_name: 'Information vendeur non disponible',
-                email: 'Email non disponible',
-                phone: undefined
-              };
-            }
+            toast.error("Impossible de récupérer les informations du vendeur");
+            listing.user = {
+              full_name: 'Information vendeur non disponible',
+              email: 'Email non disponible',
+              phone: undefined
+            };
           }
         } else {
           console.warn('No userId available for this listing, cannot fetch vendor information');
           toast.error("ID vendeur manquant pour cette annonce");
+          listing.user = {
+            full_name: 'Information vendeur non disponible',
+            email: 'Email non disponible',
+            phone: undefined
+          };
         }
         
         return listing;

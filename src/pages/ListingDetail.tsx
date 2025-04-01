@@ -23,7 +23,8 @@ const ListingDetail = () => {
   const [showPhoneNumber, setShowPhoneNumber] = useState(false);
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
-
+  const [imageErrors, setImageErrors] = useState<{[key: string]: boolean}>({});
+  
   console.log("Current URL:", window.location.href);
   console.log("Listing ID from params:", id);
   
@@ -53,6 +54,11 @@ const ListingDetail = () => {
     };
 
     window.open(shareUrls[platform], "_blank");
+  };
+
+  const handleImageError = (imageUrl: string) => {
+    console.log(`Image failed to load: ${imageUrl}`);
+    setImageErrors(prev => ({...prev, [imageUrl]: true}));
   };
 
   const defaultUserInfo: UserInfo = {
@@ -117,7 +123,7 @@ const ListingDetail = () => {
     );
   }
 
-  // Check if user information is valid and not default
+  // Check if user information is valid
   const userInfo = listing.user || defaultUserInfo;
   const hasValidUser = userInfo && 
                       userInfo.full_name && 
@@ -127,7 +133,12 @@ const ListingDetail = () => {
   console.log("User info to display:", userInfo);
   console.log("Has valid user:", hasValidUser);
 
-  const hasImages = listing?.images && listing.images.length > 0;
+  // Filter out images that failed to load
+  const validImages = listing?.images ? 
+    listing.images.filter(img => !imageErrors[img]) : 
+    [];
+    
+  const hasImages = validImages.length > 0;
   const defaultImageUrl = 'https://placehold.co/400x300/e2e8f0/1e293b?text=Image+non+disponible';
 
   return (
@@ -137,18 +148,14 @@ const ListingDetail = () => {
           {hasImages ? (
             <Carousel className="w-full">
               <CarouselContent>
-                {listing.images.map((image: string, index: number) => (
+                {validImages.map((image: string, index: number) => (
                   <CarouselItem key={index}>
                     <div className="aspect-video relative overflow-hidden rounded-lg">
                       <img
                         src={image}
                         alt={`${listing.title} - Image ${index + 1}`}
                         className="object-cover w-full h-full"
-                        onError={(e) => {
-                          console.log(`Image failed to load: ${image}`);
-                          const target = e.target as HTMLImageElement;
-                          target.src = defaultImageUrl;
-                        }}
+                        onError={() => handleImageError(image)}
                       />
                     </div>
                   </CarouselItem>
