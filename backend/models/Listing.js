@@ -38,6 +38,9 @@ const listingSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  favorites: [{
+    type: String
+  }],
   createdAt: {
     type: Date,
     default: Date.now

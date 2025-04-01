@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
+import axios from "axios";
 
 interface ImageUploadProps {
   value: string[];
@@ -45,7 +46,7 @@ export const ImageUpload = ({
     checkImages();
   }, [value]);
 
-  const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -66,20 +67,37 @@ export const ImageUpload = ({
       return;
     }
     
-    // Créer des URLs pour les fichiers
-    const newImages = validFiles.map(file => {
-      return URL.createObjectURL(file);
-    });
-
-    // Mettre à jour le statut des nouvelles images
-    const newStatus = {...imageStatus};
-    newImages.forEach(url => {
-      newStatus[url] = true;
-    });
-    setImageStatus(newStatus);
-
-    onChange([...(Array.isArray(value) ? value : []), ...newImages]);
-    setIsUploading(false);
+    try {
+      // Upload des fichiers au serveur
+      const formData = new FormData();
+      validFiles.forEach(file => {
+        formData.append('images', file);
+      });
+      
+      const response = await axios.post('http://localhost:5000/api/listings/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      if (response.data && response.data.urls) {
+        // Mettre à jour le statut des nouvelles images
+        const newStatus = {...imageStatus};
+        response.data.urls.forEach((url: string) => {
+          newStatus[url] = true;
+        });
+        setImageStatus(newStatus);
+        
+        // Ajouter les nouvelles URLs à la liste existante
+        onChange([...(Array.isArray(value) ? value : []), ...response.data.urls]);
+        toast.success(`${response.data.urls.length} images téléchargées avec succès`);
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'upload des images:", error);
+      toast.error("Erreur lors de l'upload des images");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   // Ensure value is always an array and filter out invalid images
@@ -135,6 +153,11 @@ export const ImageUpload = ({
           </div>
         </label>
       </div>
+      {isUploading && (
+        <div className="text-center text-sm text-gray-500">
+          Téléchargement des images en cours...
+        </div>
+      )}
     </div>
   );
 };

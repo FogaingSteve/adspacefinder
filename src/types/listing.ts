@@ -10,6 +10,7 @@ export interface Listing {
   images: string[];
   userId: string;
   isSold?: boolean;
+  favorites?: string[];
   createdAt?: Date;
   updatedAt?: Date;
   user?: UserInfo;
