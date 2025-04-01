@@ -139,110 +139,132 @@ export const listingService = {
   async getListingById(id: string): Promise<Listing> {
     try {
       console.log(`Fetching listing with ID: ${id}`);
-      
+    
       // Vérification de l'ID valide
       if (!id || id === 'undefined' || id === 'null') {
         console.error('ID invalide fourni:', id);
         throw new Error('ID d\'annonce invalide');
       }
-      
+    
       // Nettoyage de l'ID pour éviter les problèmes
       const cleanId = id.trim();
       console.log(`Cleaned ID: ${cleanId}`);
-      
+    
       const response = await axios.get(`${API_URL}/listings/${cleanId}`);
-      
+    
       if (!response.data) {
         console.error('Réponse vide de l\'API pour ID:', cleanId);
         throw new Error('Annonce non trouvée');
       }
-      
-      // Si on a une réponse mais que user est undefined ou null, vérifions l'utilisateur dans Supabase
+    
+      // Si on a une réponse mais qu'on n'a pas d'info utilisateur, on va chercher dans Supabase
       if (response.data && response.data.userId) {
         try {
           console.log("Fetching user info for userId:", response.data.userId);
-          
+        
           // Récupérer la session actuelle pour avoir le token d'accès
           const { data: sessionData } = await supabase.auth.getSession();
-          if (!sessionData || !sessionData.session) {
-            console.log("No active session found, user info may be limited");
+        
+          // Essayer d'abord d'utiliser l'admin API si disponible
+          try {
+            const { data: adminData, error: adminError } = await supabase.auth.admin.getUserById(response.data.userId);
+            if (!adminError && adminData && adminData.user) {
+              console.log("Admin API success:", adminData.user);
+              response.data.user = {
+                full_name: adminData.user.user_metadata?.full_name || 
+                         adminData.user.user_metadata?.name || 
+                         'Vendeur',
+                email: adminData.user.email || 'Email non disponible',
+                phone: adminData.user.user_metadata?.phone || undefined
+              };
+              return response.data;
+            }
+          } catch (adminError) {
+            console.log("Admin API not available:", adminError);
           }
-          
-          // Essayer de récupérer les informations utilisateur de la table profiles si elle existe
+        
+          // Essayer de récupérer depuis la table profiles
           try {
             const { data: profileData, error: profileError } = await supabase
               .from('profiles')
-              .select('full_name, email, phone')
+              .select('*')
               .eq('id', response.data.userId)
               .single();
-              
+            
             if (!profileError && profileData) {
               console.log("User profile found:", profileData);
               response.data.user = {
-                full_name: profileData.full_name || 'Utilisateur',
+                full_name: profileData.full_name || profileData.name || 'Vendeur',
                 email: profileData.email || 'Email non disponible',
                 phone: profileData.phone || undefined
               };
               return response.data;
-            } else {
-              console.log("Profile table error or no data:", profileError);
             }
           } catch (profileErr) {
-            console.error("Error querying profiles table:", profileErr);
+            console.log("Profiles table error:", profileErr);
           }
-          
-          // Fallback: utiliser les métadonnées de l'utilisateur connecté si c'est le même ID
+        
+          // Essayer de récupérer depuis la table users
+          try {
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', response.data.userId)
+              .single();
+            
+            if (!userError && userData) {
+              console.log("Users table data found:", userData);
+              response.data.user = {
+                full_name: userData.full_name || userData.name || 'Vendeur',
+                email: userData.email_address || userData.email || 'Email non disponible',
+                phone: userData.phone || undefined
+              };
+              return response.data;
+            }
+          } catch (userErr) {
+            console.log("Users table error:", userErr);
+          }
+        
+          // Fallback: utiliser les données de l'utilisateur connecté si disponible
           if (sessionData && sessionData.session && sessionData.session.user) {
             const currentUser = sessionData.session.user;
-            
-            if (currentUser.id === response.data.userId) {
-              console.log("Current user is the vendor, using session data");
-              response.data.user = {
-                full_name: currentUser.user_metadata?.full_name || 
-                           currentUser.user_metadata?.name || 
-                           'Utilisateur',
-                email: currentUser.email || 'Email non disponible',
-                phone: currentUser.user_metadata?.phone || undefined
-              };
-            } else {
-              console.log("Current user is not the vendor");
-              // Utilisateur par défaut si rien d'autre ne fonctionne
-              response.data.user = {
-                full_name: 'Information vendeur non disponible',
-                email: 'Email non disponible',
-                phone: undefined
-              };
-            }
-          } else {
-            console.log("No session available");
+            console.log("Using current user session data for fallback");
+          
+            // Fournir des informations basées sur l'ID du vendeur même si ce n'est pas l'utilisateur connecté
             response.data.user = {
-              full_name: 'Information vendeur non disponible',
-              email: 'Email non disponible',
+              full_name: 'Vendeur #' + response.data.userId.substring(0, 6),
+              email: 'Contact via la plateforme',
+              phone: undefined
+            };
+          } else {
+            console.log("No session available, using default vendor info");
+            response.data.user = {
+              full_name: 'Vendeur #' + response.data.userId.substring(0, 6),
+              email: 'Contact via la plateforme',
               phone: undefined
             };
           }
-          
         } catch (userError) {
           console.error("Error during user data retrieval:", userError);
           response.data.user = {
-            full_name: 'Information vendeur non disponible',
-            email: 'Email non disponible',
+            full_name: 'Vendeur #' + response.data.userId.substring(0, 6),
+            email: 'Contact via la plateforme',
             phone: undefined
           };
         }
       }
-      
+    
       console.log("Final listing data with user info:", response.data);
       return response.data;
     } catch (error: any) {
       console.error("Erreur récupération annonce par ID:", error);
       console.error("Status:", error.response?.status);
       console.error("Message:", error.response?.data?.message || error.message);
-      
+    
       if (error.response?.status === 404) {
         throw new Error("Cette annonce n'existe pas ou a été supprimée");
       }
-      
+    
       throw new Error("Erreur lors de la récupération de l'annonce: " + 
         (error.response?.data?.message || error.message));
     }

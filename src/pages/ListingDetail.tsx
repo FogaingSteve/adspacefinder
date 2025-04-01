@@ -35,6 +35,8 @@ const ListingDetail = () => {
   } = useListingById(id || '', {
     enabled: !!id,
     retry: 3,
+    refetchOnWindowFocus: false,  // Empêcher le refetch automatique qui pourrait perdre les données utilisateur
+    staleTime: 60000,  // Garder les données fraîches pendant 1 minute
   });
 
   useEffect(() => {
@@ -42,6 +44,13 @@ const ListingDetail = () => {
       console.error("Error loading listing:", listingError);
     }
   }, [listing, listingError]);
+
+  // Reset image errors when listing changes
+  useEffect(() => {
+    if (listing) {
+      setImageErrors({});
+    }
+  }, [listing]);
 
   const handleShare = (platform: string) => {
     const url = window.location.href;
@@ -127,15 +136,14 @@ const ListingDetail = () => {
   const userInfo = listing.user || defaultUserInfo;
   const hasValidUser = userInfo && 
                       userInfo.full_name && 
-                      userInfo.full_name !== 'Information vendeur non disponible' &&
-                      userInfo.full_name !== 'Utilisateur';
+                      userInfo.full_name !== 'Information vendeur non disponible';
 
   console.log("User info to display:", userInfo);
   console.log("Has valid user:", hasValidUser);
 
-  // Filter out images that failed to load
-  const validImages = listing?.images ? 
-    listing.images.filter(img => !imageErrors[img]) : 
+  // Filter out images that failed to load and make sure images exist
+  const validImages = listing?.images && Array.isArray(listing.images) ? 
+    listing.images.filter(img => img && !imageErrors[img]) : 
     [];
     
   const hasImages = validImages.length > 0;
@@ -156,6 +164,7 @@ const ListingDetail = () => {
                         alt={`${listing.title} - Image ${index + 1}`}
                         className="object-cover w-full h-full"
                         onError={() => handleImageError(image)}
+                        loading="lazy"
                       />
                     </div>
                   </CarouselItem>
