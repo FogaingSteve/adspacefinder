@@ -91,89 +91,58 @@ export const useListingById = (id: string, options = {}) => {
         const listing = await listingService.getListingById(id);
         console.log('Listing found:', listing);
         
-        // Tenter de récupérer les informations du vendeur même si on n'est pas le vendeur
+        // Always try to get seller information regardless of who is logged in
         if (listing && listing.userId) {
           console.log('Fetching user profile for userId:', listing.userId);
           
           try {
-            // Récupérer les informations de l'utilisateur directement depuis Supabase Auth
-            const { data: userData, error: userError } = await supabase.auth.admin.getUserById(listing.userId);
-            
-            if (userError) {
-              console.error('Error getting vendor user data:', userError);
-              throw userError;
-            }
+            // Try to get user from Supabase auth
+            const { data: userData } = await supabase.auth.getUser(listing.userId);
             
             if (userData && userData.user) {
-              console.log('Vendor data found from Auth:', userData.user);
+              console.log('User data found from Auth:', userData.user);
               
               listing.user = {
                 full_name: userData.user.user_metadata?.full_name || 
                           userData.user.user_metadata?.name || 
                           'Vendeur',
                 email: userData.user.email || 'Email non disponible',
-                phone: userData.user.user_metadata?.phone || undefined
+                phone: userData.user.user_metadata?.phone || undefined,
+                avatar_url: userData.user.user_metadata?.avatar_url || undefined
               };
               
               return listing;
             }
-          } catch (adminError) {
-            console.log('Admin API not accessible, trying alternative methods:', adminError);
-            
-            // Méthode alternative 1: Essayer de récupérer depuis la table profiles
-            try {
-              const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', listing.userId)
-                .single();
-              
-              if (!profileError && profileData) {
-                console.log('User profile found from profiles table:', profileData);
-                listing.user = {
-                  full_name: profileData.full_name || profileData.name || 'Vendeur',
-                  email: profileData.email || 'Email non disponible',
-                  phone: profileData.phone || undefined
-                };
-                return listing;
-              }
-            } catch (profilesError) {
-              console.error('Error with profiles table:', profilesError);
-            }
-            
-            // Méthode alternative 2: Essayer de récupérer depuis la table users
-            try {
-              const { data: usersData, error: usersError } = await supabase
-                .from('users')
-                .select('*')
-                .eq('id', listing.userId)
-                .single();
-              
-              if (!usersError && usersData) {
-                console.log('User data found from users table:', usersData);
-                listing.user = {
-                  full_name: usersData.full_name || usersData.name || 'Vendeur',
-                  email: usersData.email_address || usersData.email || 'Email non disponible',
-                  phone: usersData.phone || undefined
-                };
-                return listing;
-              }
-            } catch (usersError) {
-              console.error('Error with users table:', usersError);
-            }
-            
-            // Méthode alternative 3: Valeurs par défaut avec ID vendeur
-            listing.user = {
-              full_name: 'Vendeur #' + listing.userId.substring(0, 6),
-              email: 'Contact via la plateforme',
-              phone: undefined
-            };
+          } catch (authError) {
+            console.log('Auth method error, trying alternative methods:', authError);
           }
-        } else {
-          console.warn('No userId available for this listing');
+          
+          // Try profiles table
+          try {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', listing.userId)
+              .single();
+            
+            if (!profileError && profileData) {
+              console.log('User profile found from profiles table:', profileData);
+              listing.user = {
+                full_name: profileData.full_name || profileData.name || 'Vendeur',
+                email: profileData.email || 'Email non disponible',
+                phone: profileData.phone || undefined,
+                avatar_url: profileData.avatar_url || undefined
+              };
+              return listing;
+            }
+          } catch (profilesError) {
+            console.error('Error with profiles table:', profilesError);
+          }
+          
+          // Default fallback
           listing.user = {
-            full_name: 'Information vendeur non disponible',
-            email: 'Email non disponible',
+            full_name: 'Vendeur #' + listing.userId.substring(0, 6),
+            email: 'Contact via la plateforme',
             phone: undefined
           };
         }

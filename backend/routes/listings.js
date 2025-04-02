@@ -39,6 +39,34 @@ const upload = multer({
   }
 });
 
+// Récupérer les annonces récentes (moins de 24h)
+// IMPORTANT: Cette route doit être placée AVANT la route /:id pour éviter les conflits
+router.get('/recent', async (req, res) => {
+  try {
+    console.log("Récupération des annonces récentes (moins de 24h)");
+    
+    // Calculer la date d'il y a 24 heures
+    const oneDayAgo = new Date();
+    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+    
+    console.log("Date limite:", oneDayAgo);
+    
+    const listings = await Listing.find({
+      createdAt: { $gte: oneDayAgo },
+      isSold: { $ne: true } // Ne pas inclure les annonces marquées comme vendues
+    })
+      .sort({ createdAt: -1 })
+      .limit(20) // Limiter le nombre de résultats
+      .exec();
+    
+    console.log("Annonces récentes trouvées:", listings.length);
+    res.json(listings);
+  } catch (error) {
+    console.error("Erreur récupération annonces récentes:", error);
+    res.status(500).json({ message: "Erreur lors de la récupération des annonces récentes" });
+  }
+});
+
 // Récupérer une annonce par ID
 router.get('/:id', async (req, res) => {
   try {
