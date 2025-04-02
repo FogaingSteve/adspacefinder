@@ -96,14 +96,11 @@ export const CategoryListings = ({ categoryId, subcategoryId, limit = 8 }: Categ
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {listings.map((listing: any) => {
-        // Simplification: Toujours utiliser le même format d'URL pour les annonces
-        const listingUrl = `/listings/${listing._id}`;
-        
-        console.log(`Creating link for listing ${listing.title} with URL: ${listingUrl}`);
+        const listingUrl = `/listings/${listing._id || listing.id}`;
         
         return (
           <Link
-            key={listing._id}
+            key={listing._id || listing.id}
             to={listingUrl}
             className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
           >
@@ -118,10 +115,10 @@ export const CategoryListings = ({ categoryId, subcategoryId, limit = 8 }: Categ
               />
               <div className="absolute top-2 right-2">
                 <Button
-                  onClick={(e) => handleToggleFavorite(e, listing._id)}
+                  onClick={(e) => handleToggleFavorite(e, listing._id || listing.id)}
                   variant="ghost"
                   size="icon"
-                  disabled={processingFavorites[listing._id]}
+                  disabled={processingFavorites[listing._id || listing.id]}
                   className="bg-white/80 hover:bg-white rounded-full"
                 >
                   <Heart 

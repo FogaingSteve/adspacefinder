@@ -85,7 +85,7 @@ const Favorites = () => {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {favorites.map((listing) => (
-              <Card key={listing.id} className="overflow-hidden hover:shadow-md transition-shadow">
+              <Card key={listing.id || listing._id} className="overflow-hidden hover:shadow-md transition-shadow">
                 <div className="aspect-video relative">
                   <img
                     src={listing.images[0] || "https://via.placeholder.com/400x300?text=Pas+d'image"}
@@ -116,7 +116,7 @@ const Favorites = () => {
                       size="sm"
                       asChild
                     >
-                      <Link to={`/listings/${listing.id}`}>
+                      <Link to={`/listings/${listing.id || listing._id}`}>
                         <Eye className="h-4 w-4 mr-2" />
                         Voir
                       </Link>
@@ -124,12 +124,12 @@ const Favorites = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleRemoveFavorite(listing.id)}
-                      disabled={removingId === listing.id}
+                      onClick={() => handleRemoveFavorite(listing.id || listing._id)}
+                      disabled={removingId === (listing.id || listing._id)}
                       className="text-red-500 hover:text-red-600"
                     >
                       <Heart className="h-4 w-4 mr-2 fill-current" />
-                      {removingId === listing.id ? "..." : "Retirer"}
+                      {removingId === (listing.id || listing._id) ? "..." : "Retirer"}
                     </Button>
                   </div>
                 </CardContent>

@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const Listing = require('../models/Listing');
@@ -39,20 +38,19 @@ const upload = multer({
   }
 });
 
-// Récupérer les annonces récentes (moins de 24h)
-// IMPORTANT: Cette route doit être placée AVANT la route /:id pour éviter les conflits
+// Récupérer les annonces récentes (moins de 7 jours)
 router.get('/recent', async (req, res) => {
   try {
-    console.log("Récupération des annonces récentes (moins de 24h)");
+    console.log("Récupération des annonces récentes (moins de 7 jours)");
     
-    // Calculer la date d'il y a 24 heures
-    const oneDayAgo = new Date();
-    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+    // Calculer la date d'il y a 7 jours
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
-    console.log("Date limite:", oneDayAgo);
+    console.log("Date limite:", sevenDaysAgo);
     
     const listings = await Listing.find({
-      createdAt: { $gte: oneDayAgo },
+      createdAt: { $gte: sevenDaysAgo },
       isSold: { $ne: true } // Ne pas inclure les annonces marquées comme vendues
     })
       .sort({ createdAt: -1 })
@@ -67,12 +65,20 @@ router.get('/recent', async (req, res) => {
   }
 });
 
+// Important: This route must come AFTER /recent
 // Récupérer une annonce par ID
 router.get('/:id', async (req, res) => {
   try {
-    // Éviter les erreurs MongoDB en vérifiant si l'ID est "recent"
-    if (req.params.id === 'recent') {
-      return res.status(400).json({ message: "ID invalide" });
+    // Avoid MongoDB errors with special routes
+    if (req.params.id === 'recent' || 
+        req.params.id === 'search' || 
+        req.params.id === 'category' || 
+        req.params.id === 'user' || 
+        req.params.id === 'title' ||
+        req.params.id === 'favorites' ||
+        req.params.id === 'search-results' ||
+        req.params.id === 'upload') {
+      return res.status(400).json({ message: "Route spéciale, utilisez l'endpoint dédié" });
     }
     
     console.log("Recherche de l'annonce par ID:", req.params.id);
@@ -293,14 +299,9 @@ router.post('/:id/favorite', auth, async (req, res) => {
 });
 
 // Récupérer les annonces favorites d'un utilisateur
-router.get('/favorites/:userId', auth, async (req, res) => {
+router.get('/favorites/:userId', async (req, res) => {
   try {
     const userId = req.params.userId;
-    
-    // Vérifier que l'utilisateur demande ses propres favoris
-    if (userId !== req.userId) {
-      return res.status(403).json({ message: "Non autorisé" });
-    }
     
     console.log(`Récupération des favoris pour l'utilisateur ${userId}`);
     

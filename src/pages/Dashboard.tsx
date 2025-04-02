@@ -202,13 +202,13 @@ export default function Dashboard() {
               <CardContent>
                 {listingsLoading ? (
                   <LoadingState />
-                ) : filteredListings.length === 0 ? (
+                ) : !filteredListings || filteredListings.length === 0 ? (
                   <EmptyState />
                 ) : (
                   <div className="space-y-4">
                     {filteredListings.map((listing) => (
                       <div
-                        key={listing.id}
+                        key={listing.id || listing._id}
                         className="flex items-center gap-4 p-4 border rounded-lg"
                       >
                         <div className="relative w-20 h-20">
@@ -247,7 +247,7 @@ export default function Dashboard() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/listings/${listing.id}`)}
+                            onClick={() => navigate(`/listings/${listing.id || listing._id}`)}
                           >
                             <Eye className="h-4 w-4 mr-2" />
                             Voir
@@ -255,7 +255,7 @@ export default function Dashboard() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/listings/${listing.id}/edit`)}
+                            onClick={() => navigate(`/listings/${listing.id || listing._id}/edit`)}
                           >
                             <Edit className="h-4 w-4 mr-2" />
                             Modifier
@@ -263,22 +263,22 @@ export default function Dashboard() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleMarkAsSold(listing.id!)}
-                            disabled={processingIds[listing.id!]}
+                            onClick={() => handleMarkAsSold(listing.id || listing._id)}
+                            disabled={processingIds[listing.id || listing._id]}
                             className={listing.isSold ? "text-green-500" : ""}
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            {processingIds[listing.id!] ? "..." : (listing.isSold ? "Disponible" : "Vendu")}
+                            {processingIds[listing.id || listing._id] ? "..." : (listing.isSold ? "Disponible" : "Vendu")}
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setListingToDelete(listing.id!)}
-                            disabled={processingIds[listing.id!]}
+                            onClick={() => setListingToDelete(listing.id || listing._id)}
+                            disabled={processingIds[listing.id || listing._id]}
                             className="text-red-500 hover:text-red-600"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            {processingIds[listing.id!] ? "..." : "Supprimer"}
+                            {processingIds[listing.id || listing._id] ? "..." : "Supprimer"}
                           </Button>
                         </div>
                       </div>
@@ -314,7 +314,7 @@ export default function Dashboard() {
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {favorites.map((favorite) => (
                       <div
-                        key={favorite.id}
+                        key={favorite.id || favorite._id}
                         className="flex flex-col border rounded-lg overflow-hidden"
                       >
                         <div className="relative h-48">
@@ -348,7 +348,7 @@ export default function Dashboard() {
                               size="sm"
                               asChild
                             >
-                              <Link to={`/listings/${favorite.id}`}>
+                              <Link to={`/listings/${favorite.id || favorite._id}`}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 Voir
                               </Link>
@@ -356,12 +356,12 @@ export default function Dashboard() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleRemoveFavorite(favorite.id!)}
-                              disabled={processingIds[favorite.id!]}
+                              onClick={() => handleRemoveFavorite(favorite.id || favorite._id)}
+                              disabled={processingIds[favorite.id || favorite._id]}
                               className="text-red-500"
                             >
                               <Heart className="h-4 w-4 mr-2 fill-current" />
-                              {processingIds[favorite.id!] ? "..." : "Retirer"}
+                              {processingIds[favorite.id || favorite._id] ? "..." : "Retirer"}
                             </Button>
                           </div>
                         </div>

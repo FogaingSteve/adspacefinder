@@ -79,6 +79,9 @@ export const useRecentListings = () => {
   return useQuery({
     queryKey: ['recentListings'],
     queryFn: () => listingService.getRecentListings(),
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
@@ -87,6 +90,10 @@ export const useListingById = (id: string, options = {}) => {
     queryKey: ['listing', id],
     queryFn: async () => {
       try {
+        if (!id || id === 'undefined' || id === 'null') {
+          throw new Error('ID invalide');
+        }
+        
         console.log('Fetching listing by ID:', id);
         const listing = await listingService.getListingById(id);
         console.log('Listing found:', listing);
@@ -139,6 +146,28 @@ export const useListingById = (id: string, options = {}) => {
             console.error('Error with profiles table:', profilesError);
           }
           
+          // Try users table
+          try {
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', listing.userId)
+              .single();
+            
+            if (!userError && userData) {
+              console.log('User data found from users table:', userData);
+              listing.user = {
+                full_name: userData.full_name || userData.name || 'Vendeur',
+                email: userData.email || 'Email non disponible',
+                phone: userData.phone || undefined,
+                avatar_url: userData.avatar_url || undefined
+              };
+              return listing;
+            }
+          } catch (usersError) {
+            console.error('Error with users table:', usersError);
+          }
+          
           // Default fallback
           listing.user = {
             full_name: 'Vendeur #' + listing.userId.substring(0, 6),
@@ -153,8 +182,8 @@ export const useListingById = (id: string, options = {}) => {
         throw error;
       }
     },
-    enabled: !!id && id !== 'undefined',
-    retry: 1,
+    enabled: !!id && id !== 'undefined' && id !== 'null',
+    retry: 2,
     ...options
   });
 };
@@ -226,6 +255,8 @@ export const useToggleFavorite = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
       queryClient.invalidateQueries({ queryKey: ['recentListings'] });
+      queryClient.invalidateQueries({ queryKey: ['categoryListings'] });
+      queryClient.invalidateQueries({ queryKey: ['userListings'] });
     }
   });
 };
@@ -235,5 +266,7 @@ export const useFavorites = (userId: string) => {
     queryKey: ['favorites', userId],
     queryFn: () => listingService.getFavorites(userId),
     enabled: !!userId,
+    retry: 2,
+    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 };
