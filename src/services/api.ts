@@ -52,13 +52,41 @@ export const listingService = {
       console.log("Mise à jour annonce ID:", id);
       console.log("Données à mettre à jour:", listing);
       
-      const response = await api.put(`/listings/${id}`, listing);
+      // Vérifier si l'ID est valide
+      if (!id || id === 'undefined' || id === 'null') {
+        throw new Error("ID d'annonce invalide");
+      }
+      
+      // S'assurer que les données sont valides avant l'envoi
+      const cleanedListing: Partial<CreateListingDTO> = {};
+      Object.entries(listing).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          // @ts-ignore
+          cleanedListing[key] = value;
+        }
+      });
+      
+      // Vérifier que nous avons des données à mettre à jour
+      if (Object.keys(cleanedListing).length === 0) {
+        throw new Error("Aucune donnée valide à mettre à jour");
+      }
+      
+      const response = await api.put(`/listings/${id}`, cleanedListing);
       console.log("Réponse mise à jour:", response.data);
       toast.success("Annonce mise à jour avec succès");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur mise à jour annonce:", error);
-      toast.error("Erreur lors de la mise à jour de l'annonce");
+      console.error("Détails:", error.response?.data);
+      
+      if (error.response?.status === 401) {
+        toast.error("Veuillez vous connecter pour modifier cette annonce");
+      } else if (error.response?.status === 403) {
+        toast.error("Vous n'êtes pas autorisé à modifier cette annonce");
+      } else {
+        toast.error(error.message || "Erreur lors de la mise à jour de l'annonce");
+      }
+      
       throw new Error("Erreur lors de la mise à jour de l'annonce");
     }
   },

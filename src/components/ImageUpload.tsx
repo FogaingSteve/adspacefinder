@@ -9,25 +9,48 @@ interface ImageUploadProps {
   value: string[];
   onChange: (value: string[]) => void;
   onRemove: (url: string) => void;
+  images?: string[];
+  setImages?: (images: string[]) => void;
 }
 
 export const ImageUpload = ({
-  value = [], // Provide default empty array
+  value = [], 
   onChange,
-  onRemove
+  onRemove,
+  images,
+  setImages
 }: ImageUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [imageStatus, setImageStatus] = useState<Record<string, boolean>>({});
 
+  // Determine which value to use - either images or value prop
+  const imagesToDisplay = images || value;
+  
+  // Determine which change handler to use
+  const handleChange = (newImages: string[]) => {
+    if (setImages) {
+      setImages(newImages);
+    }
+    onChange(newImages);
+  };
+
+  // Determine which remove handler to use
+  const handleRemove = (url: string) => {
+    if (setImages && images) {
+      setImages(images.filter(image => image !== url));
+    }
+    onRemove(url);
+  };
+
   // Vérifier si les images sont toujours valides
   useEffect(() => {
     const checkImages = async () => {
-      if (!Array.isArray(value) || value.length === 0) return;
+      if (!Array.isArray(imagesToDisplay) || imagesToDisplay.length === 0) return;
       
       const newStatus: Record<string, boolean> = {};
       
       // Pour chaque image, vérifier si elle est toujours accessible
-      for (const url of value) {
+      for (const url of imagesToDisplay) {
         if (!url) continue;
         
         try {
@@ -44,7 +67,7 @@ export const ImageUpload = ({
     };
     
     checkImages();
-  }, [value]);
+  }, [imagesToDisplay]);
 
   const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -89,7 +112,8 @@ export const ImageUpload = ({
         setImageStatus(newStatus);
         
         // Ajouter les nouvelles URLs à la liste existante
-        onChange([...(Array.isArray(value) ? value : []), ...response.data.urls]);
+        const newImages = [...(Array.isArray(imagesToDisplay) ? imagesToDisplay : []), ...response.data.urls];
+        handleChange(newImages);
         toast.success(`${response.data.urls.length} images téléchargées avec succès`);
       }
     } catch (error) {
@@ -101,12 +125,12 @@ export const ImageUpload = ({
   };
 
   // Ensure value is always an array and filter out invalid images
-  const images = Array.isArray(value) ? value.filter(url => url) : [];
+  const displayImages = Array.isArray(imagesToDisplay) ? imagesToDisplay.filter(url => url) : [];
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {images.map((url, index) => (
+        {displayImages.map((url, index) => (
           <div key={`${url}-${index}`} className="relative group">
             <div className="h-48 rounded-lg bg-gray-100 flex items-center justify-center">
               <img
@@ -123,7 +147,7 @@ export const ImageUpload = ({
               />
             </div>
             <button
-              onClick={() => onRemove(url)}
+              onClick={() => handleRemove(url)}
               className="absolute top-2 right-2 p-1 rounded-full bg-white/80 hover:bg-white 
                        opacity-0 group-hover:opacity-100 transition-opacity"
             >

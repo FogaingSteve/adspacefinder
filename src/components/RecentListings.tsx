@@ -11,10 +11,15 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export const RecentListings = () => {
-  const { data: listings, isLoading, refetch } = useRecentListings();
+  const { data: listings, isLoading, refetch, error } = useRecentListings();
   const { user } = useAuth();
   const toggleFavorite = useToggleFavorite();
   const [processingFavorites, setProcessingFavorites] = useState<Record<string, boolean>>({});
+
+  // Log error if there is one
+  if (error) {
+    console.error("Error fetching recent listings:", error);
+  }
 
   const formatRelativeDate = (dateString: string | Date) => {
     try {
@@ -143,6 +148,11 @@ export const RecentListings = () => {
                 <MapPin className="h-4 w-4" />
                 <span>{listing.location}</span>
               </div>
+              {listing.user && (
+                <div className="mt-2 text-sm text-gray-500">
+                  <span>Vendeur: {listing.user.full_name}</span>
+                </div>
+              )}
             </div>
           </Link>
         ))}

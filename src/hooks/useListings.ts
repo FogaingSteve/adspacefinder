@@ -103,7 +103,29 @@ export const useListingById = (id: string, options = {}) => {
           console.log('Fetching user profile for userId:', listing.userId);
           
           try {
-            // Try to get user from Supabase auth
+            // Try to get user from Supabase profiles
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', listing.userId)
+              .single();
+            
+            if (!profileError && profileData) {
+              console.log('User profile found from profiles table:', profileData);
+              listing.user = {
+                full_name: profileData.full_name || profileData.name || 'Vendeur',
+                email: profileData.email || 'Contact via la plateforme',
+                phone: profileData.phone || undefined,
+                avatar_url: profileData.avatar_url || undefined
+              };
+              return listing;
+            }
+          } catch (profilesError) {
+            console.error('Error with profiles table:', profilesError);
+          }
+          
+          // Try to get user from Supabase auth
+          try {
             const { data: userData } = await supabase.auth.getUser(listing.userId);
             
             if (userData && userData.user) {
@@ -121,32 +143,10 @@ export const useListingById = (id: string, options = {}) => {
               return listing;
             }
           } catch (authError) {
-            console.log('Auth method error, trying alternative methods:', authError);
+            console.log('Auth method error:', authError);
           }
           
-          // Try profiles table
-          try {
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', listing.userId)
-              .single();
-            
-            if (!profileError && profileData) {
-              console.log('User profile found from profiles table:', profileData);
-              listing.user = {
-                full_name: profileData.full_name || profileData.name || 'Vendeur',
-                email: profileData.email || 'Email non disponible',
-                phone: profileData.phone || undefined,
-                avatar_url: profileData.avatar_url || undefined
-              };
-              return listing;
-            }
-          } catch (profilesError) {
-            console.error('Error with profiles table:', profilesError);
-          }
-          
-          // Try users table
+          // Try users table as a last resort
           try {
             const { data: userData, error: userError } = await supabase
               .from('users')
@@ -168,7 +168,7 @@ export const useListingById = (id: string, options = {}) => {
             console.error('Error with users table:', usersError);
           }
           
-          // Default fallback
+          // If we couldn't find user information anywhere, use a placeholder
           listing.user = {
             full_name: 'Vendeur #' + listing.userId.substring(0, 6),
             email: 'Contact via la plateforme',

@@ -34,4 +34,6 @@ export interface CreateListingDTO {
   images: string[];
 }
 
-export interface UpdateListingDTO extends Partial<CreateListingDTO> {}
+export interface UpdateListingDTO extends Partial<CreateListingDTO> {
+  isSold?: boolean;
+}
