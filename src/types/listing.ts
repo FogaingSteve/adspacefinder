@@ -12,8 +12,8 @@ export interface Listing {
   userId: string;
   isSold?: boolean;
   favorites?: string[];
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
   user?: UserInfo;
 }
 
@@ -33,3 +33,5 @@ export interface CreateListingDTO {
   location: string;
   images: string[];
 }
+
+export interface UpdateListingDTO extends Partial<CreateListingDTO> {}

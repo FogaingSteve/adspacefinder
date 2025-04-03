@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin } from "lucide-react";
@@ -13,6 +12,8 @@ import { CategoryListings } from "@/components/CategoryListings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const cities = ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda", "Kribi"];
 const priceRanges = [
@@ -28,10 +29,18 @@ const Index = () => {
   const [selectedCity, setSelectedCity] = useState("");
   const [priceRange, setPriceRange] = useState("");
 
-  // Fetch categories from MongoDB
+  const formatRelativeDate = (dateString: string | Date) => {
+    try {
+      const date = new Date(dateString);
+      return formatDistanceToNow(date, { addSuffix: true, locale: fr });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Date inconnue";
+    }
+  };
+
   const { data: categories, isLoading: categoriesLoading } = useCategories();
 
-  // Fetch cities from MongoDB
   const { data: citiesData } = useQuery({
     queryKey: ['cities'],
     queryFn: async () => {
@@ -57,7 +66,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
       <div className="bg-primary py-16 md:py-24">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
@@ -129,51 +137,41 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Search Results */}
       {searchQuery && searchResults && (
         <div className="container mx-auto px-4 py-8">
           <h2 className="text-2xl font-bold mb-6">Résultats de recherche</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {searchResults.map((listing) => (
               <Link
-                key={listing.id}
-                to={`/listings/${listing.id}`}
+                key={listing.id || listing._id}
+                to={`/listings/${listing.id || listing._id}`}
                 className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
               >
                 <div className="aspect-video relative overflow-hidden">
                   <img
-                    src={listing.images[0]}
+                    src={listing.images && listing.images[0] ? listing.images[0] : "https://via.placeholder.com/400x300?text=Pas+d'image"}
                     alt={listing.title}
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x300?text=Image+non+disponible";
+                    }}
                   />
-                  <div className="absolute top-2 right-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="bg-white/80 hover:bg-white rounded-full"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-red-500"
-                      >
-                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                      </svg>
-                    </Button>
+                  <div className="absolute top-2 left-2 bg-white/80 rounded px-2 py-1 text-sm">
+                    {formatRelativeDate(listing.createdAt || "")}
                   </div>
+                  {listing.isSold && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <div className="bg-red-500 text-white px-4 py-2 rounded-full font-semibold transform -rotate-12">
+                        Vendu
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="p-4">
-                  <h3 className="font-medium text-lg text-gray-900 group-hover:text-primary">
+                  <h3 className="font-medium text-lg text-gray-900 group-hover:text-primary line-clamp-1">
                     {listing.title}
                   </h3>
-                  <p className="text-primary font-bold mt-2">{listing.price} CFA</p>
+                  <p className="text-primary font-bold mt-2">{listing.price} €</p>
                   <div className="flex items-center gap-1 mt-2 text-gray-500 text-sm">
                     <MapPin className="h-4 w-4" />
                     <span>{listing.location}</span>
@@ -185,12 +183,10 @@ const Index = () => {
         </div>
       )}
 
-      {/* Categories Section */}
       <div className="container mx-auto px-4 py-12">
         <h2 className="text-2xl font-bold mb-8 text-center">Top Catégories</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-4">
           {categoriesLoading ? (
-            // Show loading skeletons
             Array(10).fill(0).map((_, i) => (
               <div key={i} className="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm">
                 <Skeleton className="h-8 w-8 mb-2 rounded-full" />
@@ -198,7 +194,6 @@ const Index = () => {
               </div>
             ))
           ) : (
-            // Show actual categories
             categories?.slice(0, 10).map((category: any) => {
               const Icon = categoryIcons[category.id as keyof typeof categoryIcons] || null;
               return (
@@ -216,7 +211,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Category Listings Sections */}
       {!categoriesLoading && categories?.map((category: any) => (
         <div key={category._id} className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
@@ -232,7 +226,6 @@ const Index = () => {
         </div>
       ))}
 
-      {/* Recent Listings Section */}
       <div className="container mx-auto px-4">
         <RecentListings />
       </div>

@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
@@ -50,10 +49,16 @@ export const listingService = {
 
   async updateListing(id: string, listing: Partial<CreateListingDTO>): Promise<Listing> {
     try {
+      console.log("Mise à jour annonce ID:", id);
+      console.log("Données à mettre à jour:", listing);
+      
       const response = await api.put(`/listings/${id}`, listing);
+      console.log("Réponse mise à jour:", response.data);
+      toast.success("Annonce mise à jour avec succès");
       return response.data;
     } catch (error) {
       console.error("Erreur mise à jour annonce:", error);
+      toast.error("Erreur lors de la mise à jour de l'annonce");
       throw new Error("Erreur lors de la mise à jour de l'annonce");
     }
   },
@@ -69,11 +74,14 @@ export const listingService = {
 
   async markAsSold(id: string): Promise<Listing> {
     try {
+      console.log(`Trying to mark listing ${id} as sold/unsold`);
       const response = await api.put(`/listings/${id}/sold`);
+      console.log("Réponse markAsSold:", response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur marquage comme vendu:", error);
-      throw new Error("Erreur lors du marquage comme vendu");
+      console.error("Détails:", error.response?.data);
+      throw error;
     }
   },
 
@@ -81,7 +89,38 @@ export const listingService = {
     try {
       // Utiliser axios directement au lieu de l'instance api pour éviter les problèmes d'authentification
       const response = await axios.get(`${API_URL}/listings/recent`);
-      return response.data;
+      
+      // Enrich listings with user data
+      const enrichedListings = await Promise.all(response.data.map(async (listing: Listing) => {
+        if (listing.userId) {
+          try {
+            // Try to get user from Supabase profiles
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', listing.userId)
+              .single();
+              
+            if (!error && data) {
+              listing.user = {
+                full_name: data.full_name || data.name || 'Vendeur',
+                email: data.email || 'Contact via la plateforme',
+                phone: data.phone,
+                avatar_url: data.avatar_url
+              };
+            }
+          } catch (e) {
+            console.log("Error fetching user data for listing:", e);
+            listing.user = {
+              full_name: `Vendeur #${listing.userId.substring(0, 6)}`,
+              email: 'Contact via la plateforme'
+            };
+          }
+        }
+        return listing;
+      }));
+      
+      return enrichedListings;
     } catch (error) {
       console.error("Erreur récupération annonces récentes:", error);
       throw new Error("Erreur lors de la récupération des annonces récentes");
@@ -162,33 +201,12 @@ export const listingService = {
         throw new Error('Annonce non trouvée');
       }
     
-      // Si on a une réponse mais qu'on n'a pas d'info utilisateur, on va chercher dans Supabase
+      // Récupérer les informations du vendeur
       if (response.data && response.data.userId) {
         try {
           console.log("Fetching user info for userId:", response.data.userId);
         
-          // Récupérer la session actuelle pour avoir le token d'accès
-          const { data: sessionData } = await supabase.auth.getSession();
-        
-          // Essayer d'abord d'utiliser l'admin API si disponible
-          try {
-            const { data: adminData, error: adminError } = await supabase.auth.admin.getUserById(response.data.userId);
-            if (!adminError && adminData && adminData.user) {
-              console.log("Admin API success:", adminData.user);
-              response.data.user = {
-                full_name: adminData.user.user_metadata?.full_name || 
-                         adminData.user.user_metadata?.name || 
-                         'Vendeur',
-                email: adminData.user.email || 'Email non disponible',
-                phone: adminData.user.user_metadata?.phone || undefined
-              };
-              return response.data;
-            }
-          } catch (adminError) {
-            console.log("Admin API not available:", adminError);
-          }
-        
-          // Essayer de récupérer depuis la table profiles
+          // Récupérer depuis la table profiles
           try {
             const { data: profileData, error: profileError } = await supabase
               .from('profiles')
@@ -200,54 +218,22 @@ export const listingService = {
               console.log("User profile found:", profileData);
               response.data.user = {
                 full_name: profileData.full_name || profileData.name || 'Vendeur',
-                email: profileData.email || 'Email non disponible',
-                phone: profileData.phone || undefined
+                email: profileData.email || 'Contact via la plateforme',
+                phone: profileData.phone || undefined,
+                avatar_url: profileData.avatar_url || undefined
               };
               return response.data;
             }
           } catch (profileErr) {
             console.log("Profiles table error:", profileErr);
           }
-        
-          // Essayer de récupérer depuis la table users
-          try {
-            const { data: userData, error: userError } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', response.data.userId)
-              .single();
-            
-            if (!userError && userData) {
-              console.log("Users table data found:", userData);
-              response.data.user = {
-                full_name: userData.full_name || userData.name || 'Vendeur',
-                email: userData.email_address || userData.email || 'Email non disponible',
-                phone: userData.phone || undefined
-              };
-              return response.data;
-            }
-          } catch (userErr) {
-            console.log("Users table error:", userErr);
-          }
-        
-          // Si l'utilisateur est connecté et que l'annonce lui appartient, utiliser ses données
-          if (sessionData?.session?.user && sessionData.session.user.id === response.data.userId) {
-            const currentUser = sessionData.session.user;
-            response.data.user = {
-              full_name: currentUser.user_metadata?.full_name || 
-                       currentUser.user_metadata?.name || 
-                       'Vendeur',
-              email: currentUser.email || 'Email non disponible',
-              phone: currentUser.user_metadata?.phone || undefined
-            };
-          } else {
-            // Si l'utilisateur n'est pas connecté ou que l'annonce ne lui appartient pas
-            response.data.user = {
-              full_name: 'Vendeur',
-              email: 'Contact via la plateforme',
-              phone: undefined
-            };
-          }
+          
+          // Si aucune information utilisateur n'est trouvée, utiliser un placeholder
+          response.data.user = {
+            full_name: `Vendeur #${response.data.userId.substring(0, 6)}`,
+            email: 'Contact via la plateforme',
+            phone: undefined
+          };
         } catch (userError) {
           console.error("Error during user data retrieval:", userError);
           response.data.user = {
@@ -388,7 +374,38 @@ export const listingService = {
   async getFavorites(userId: string): Promise<Listing[]> {
     try {
       const response = await api.get(`/listings/favorites/${userId}`);
-      return response.data;
+      
+      // Enrich favorites with user data
+      const enrichedFavorites = await Promise.all(response.data.map(async (listing: Listing) => {
+        if (listing.userId) {
+          try {
+            // Try to get user from Supabase profiles
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', listing.userId)
+              .single();
+              
+            if (!error && data) {
+              listing.user = {
+                full_name: data.full_name || data.name || 'Vendeur',
+                email: data.email || 'Contact via la plateforme',
+                phone: data.phone,
+                avatar_url: data.avatar_url
+              };
+            }
+          } catch (e) {
+            console.log("Error fetching user data for favorite:", e);
+            listing.user = {
+              full_name: `Vendeur #${listing.userId.substring(0, 6)}`,
+              email: 'Contact via la plateforme'
+            };
+          }
+        }
+        return listing;
+      }));
+      
+      return enrichedFavorites;
     } catch (error) {
       console.error("Erreur récupération favoris:", error);
       throw new Error("Erreur lors de la récupération des favoris");

@@ -7,12 +7,24 @@ import { useRecentListings, useToggleFavorite } from "@/hooks/useListings";
 import { Skeleton } from "./ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
 
 export const RecentListings = () => {
   const { data: listings, isLoading, refetch } = useRecentListings();
   const { user } = useAuth();
   const toggleFavorite = useToggleFavorite();
   const [processingFavorites, setProcessingFavorites] = useState<Record<string, boolean>>({});
+
+  const formatRelativeDate = (dateString: string | Date) => {
+    try {
+      const date = new Date(dateString);
+      return formatDistanceToNow(date, { addSuffix: true, locale: fr });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Date inconnue";
+    }
+  };
 
   const handleToggleFavorite = async (e: React.MouseEvent, listingId: string) => {
     e.preventDefault(); // Empêcher la navigation vers la page de détail
@@ -108,7 +120,7 @@ export const RecentListings = () => {
                 />
               </Button>
               <div className="absolute top-2 left-2 bg-white/80 rounded px-2 py-1 text-sm">
-                {new Date(listing.createdAt || "").toLocaleDateString()}
+                {formatRelativeDate(listing.createdAt || "")}
               </div>
               {listing.isSold && (
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">

@@ -2,14 +2,17 @@
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MessageSquare, Eye, Heart, Search, Edit, Trash2, CheckCircle } from "lucide-react";
+import { Package, MessageSquare, Eye, Heart, Search, Edit, Trash2, CheckCircle, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useUserListings, useDeleteListing, useMarkListingAsSold, useFavorites, useToggleFavorite } from "@/hooks/useListings";
+import { useUserListings, useDeleteListing, useMarkListingAsSold, useFavorites, useToggleFavorite, useListingById } from "@/hooks/useListings";
 import { Link, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EditListingForm } from "@/components/EditListingForm";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,14 +28,29 @@ import { toast } from "sonner";
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [listingToDelete, setListingToDelete] = useState<string | null>(null);
+  const [listingToEdit, setListingToEdit] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: userListings, isLoading: listingsLoading, refetch: refetchListings } = useUserListings(user?.id || "");
   const { data: favorites, isLoading: favoritesLoading, refetch: refetchFavorites } = useFavorites(user?.id || "");
+  const { data: editingListing, isLoading: editingLoading } = useListingById(listingToEdit || "", {
+    enabled: !!listingToEdit,
+  });
   const deleteListing = useDeleteListing();
   const markAsSold = useMarkListingAsSold();
   const toggleFavorite = useToggleFavorite();
   const [processingIds, setProcessingIds] = useState<Record<string, boolean>>({});
+
+  // Format relative date (e.g., "il y a 2 jours")
+  const formatRelativeDate = (dateString: string | Date) => {
+    try {
+      const date = new Date(dateString);
+      return formatDistanceToNow(date, { addSuffix: true, locale: fr });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Date inconnue";
+    }
+  };
 
   const stats = [
     {
@@ -104,6 +122,12 @@ export default function Dashboard() {
     }
   };
 
+  const handleEditSuccess = () => {
+    setListingToEdit(null);
+    refetchListings();
+    toast.success("Annonce mise à jour avec succès");
+  };
+
   const EmptyState = () => (
     <div className="text-center py-12">
       <Package className="mx-auto h-12 w-12 text-gray-400" />
@@ -143,6 +167,29 @@ export default function Dashboard() {
           <Button asChild>
             <Link to="/auth/signin">Se connecter</Link>
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Render edit form for selected listing
+  if (listingToEdit && editingListing) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold">Modifier l'annonce</h1>
+            <Button variant="outline" size="sm" onClick={() => setListingToEdit(null)}>
+              <X className="h-4 w-4 mr-2" />
+              Annuler
+            </Button>
+          </div>
+          <EditListingForm 
+            listing={editingListing} 
+            onCancel={() => setListingToEdit(null)}
+            onSuccess={handleEditSuccess}
+          />
         </div>
       </div>
     );
@@ -231,7 +278,7 @@ export default function Dashboard() {
                         <div className="flex-1">
                           <h3 className="font-medium line-clamp-1">{listing.title}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {new Date(listing.createdAt || "").toLocaleDateString()}
+                            {formatRelativeDate(listing.createdAt || "")}
                           </p>
                           <div className="flex items-center gap-4 mt-2">
                             <span className="flex items-center gap-1 text-sm">
@@ -255,7 +302,7 @@ export default function Dashboard() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/listings/${listing.id || listing._id}/edit`)}
+                            onClick={() => setListingToEdit(listing.id || listing._id)}
                           >
                             <Edit className="h-4 w-4 mr-2" />
                             Modifier
@@ -340,7 +387,7 @@ export default function Dashboard() {
                             {favorite.price} €
                           </p>
                           <p className="text-sm text-gray-500 mt-1">
-                            {new Date(favorite.createdAt || "").toLocaleDateString()}
+                            {formatRelativeDate(favorite.createdAt || "")}
                           </p>
                           <div className="mt-auto pt-4 flex justify-between">
                             <Button
