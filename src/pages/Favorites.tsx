@@ -9,6 +9,8 @@ import { Heart, MapPin, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const Favorites = () => {
   const { user } = useAuth();
@@ -34,6 +36,18 @@ const Favorites = () => {
       console.error("Erreur toggle favori:", error);
     } finally {
       setRemovingId(null);
+    }
+  };
+
+  const formatRelativeTime = (date: string | Date | undefined): string => {
+    if (!date) return "Date inconnue";
+    
+    try {
+      const parsedDate = typeof date === 'string' ? new Date(date) : date;
+      return `il y a ${formatDistanceToNow(parsedDate, { locale: fr })}`;
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Date invalide";
     }
   };
 
@@ -110,6 +124,9 @@ const Favorites = () => {
                     <MapPin className="h-4 w-4 mr-1" />
                     <span>{listing.location}</span>
                   </div>
+                  <p className="text-gray-500 text-sm mt-1">
+                    {formatRelativeTime(listing.createdAt)}
+                  </p>
                   <div className="flex justify-between items-center mt-4">
                     <Button
                       variant="outline"

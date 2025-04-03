@@ -17,6 +17,8 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { useListingById } from "@/hooks/useListings";
 import { UserInfo } from "@/types/listing";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const ListingDetail = () => {
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
@@ -35,8 +37,8 @@ const ListingDetail = () => {
   } = useListingById(id || '', {
     enabled: !!id,
     retry: 3,
-    refetchOnWindowFocus: false,  // Empêcher le refetch automatique qui pourrait perdre les données utilisateur
-    staleTime: 60000,  // Garder les données fraîches pendant 1 minute
+    refetchOnWindowFocus: false,
+    staleTime: 60000,
   });
 
   useEffect(() => {
@@ -70,9 +72,21 @@ const ListingDetail = () => {
     setImageErrors(prev => ({...prev, [imageUrl]: true}));
   };
 
+  const formatRelativeTime = (date: string | Date | undefined): string => {
+    if (!date) return "Date inconnue";
+    
+    try {
+      const parsedDate = typeof date === 'string' ? new Date(date) : date;
+      return `il y a ${formatDistanceToNow(parsedDate, { locale: fr })}`;
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Date invalide";
+    }
+  };
+
   const defaultUserInfo: UserInfo = {
     full_name: 'Information vendeur non disponible',
-    email: 'Email non disponible',
+    email: 'Contact via la plateforme',
     phone: undefined
   };
 
@@ -215,11 +229,7 @@ const ListingDetail = () => {
                 <div>
                   <h2 className="font-semibold mb-2">Date de publication</h2>
                   <p className="text-gray-600">
-                    {new Date(listing.createdAt || "").toLocaleDateString("fr-FR", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric"
-                    })}
+                    {formatRelativeTime(listing.createdAt)}
                   </p>
                 </div>
               </div>
@@ -237,10 +247,11 @@ const ListingDetail = () => {
                 <div className="border-b pb-4">
                   <p className="font-medium text-lg">
                     {hasValidUser 
-                      ? userInfo.full_name 
+                      ? userInfo.full_name.replace(/^Vendeur #[a-f0-9]{6}$/, 'Vendeur') 
                       : 'Information vendeur non disponible'}
                   </p>
-                  {hasValidUser && userInfo.email && userInfo.email !== 'Email non disponible' && (
+                  {hasValidUser && userInfo.email && userInfo.email !== 'Email non disponible' && 
+                   userInfo.email !== 'Contact via la plateforme' && (
                     <p className="text-gray-600">{userInfo.email}</p>
                   )}
                 </div>

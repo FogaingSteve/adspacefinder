@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import { CreateListingDTO, Listing } from "@/types/listing";
 import { toast } from "sonner";
@@ -16,7 +17,10 @@ api.interceptors.request.use(async (config) => {
   if (session?.access_token) {
     config.headers.Authorization = `Bearer ${session.access_token}`;
   } else {
-    if (config.url?.includes('/categories') || config.url?.includes('/listings/recent')) {
+    // Laisser passer certaines routes publiques sans token
+    if (config.url?.includes('/categories') || 
+        config.url?.includes('/listings/recent') || 
+        (config.method === 'get' && config.url?.includes('/listings/'))) {
       return config;
     }
     toast.error("Veuillez vous connecter");
@@ -75,6 +79,7 @@ export const listingService = {
 
   async getRecentListings(): Promise<Listing[]> {
     try {
+      // Utiliser axios directement au lieu de l'instance api pour éviter les problèmes d'authentification
       const response = await axios.get(`${API_URL}/listings/recent`);
       return response.data;
     } catch (error) {
@@ -225,21 +230,20 @@ export const listingService = {
             console.log("Users table error:", userErr);
           }
         
-          // Fallback: utiliser les données de l'utilisateur connecté si disponible
-          if (sessionData && sessionData.session && sessionData.session.user) {
+          // Si l'utilisateur est connecté et que l'annonce lui appartient, utiliser ses données
+          if (sessionData?.session?.user && sessionData.session.user.id === response.data.userId) {
             const currentUser = sessionData.session.user;
-            console.log("Using current user session data for fallback");
-          
-            // Fournir des informations basées sur l'ID du vendeur même si ce n'est pas l'utilisateur connecté
             response.data.user = {
-              full_name: 'Vendeur #' + response.data.userId.substring(0, 6),
-              email: 'Contact via la plateforme',
-              phone: undefined
+              full_name: currentUser.user_metadata?.full_name || 
+                       currentUser.user_metadata?.name || 
+                       'Vendeur',
+              email: currentUser.email || 'Email non disponible',
+              phone: currentUser.user_metadata?.phone || undefined
             };
           } else {
-            console.log("No session available, using default vendor info");
+            // Si l'utilisateur n'est pas connecté ou que l'annonce ne lui appartient pas
             response.data.user = {
-              full_name: 'Vendeur #' + response.data.userId.substring(0, 6),
+              full_name: 'Vendeur',
               email: 'Contact via la plateforme',
               phone: undefined
             };
@@ -247,7 +251,7 @@ export const listingService = {
         } catch (userError) {
           console.error("Error during user data retrieval:", userError);
           response.data.user = {
-            full_name: 'Vendeur #' + response.data.userId.substring(0, 6),
+            full_name: 'Vendeur',
             email: 'Contact via la plateforme',
             phone: undefined
           };
