@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Navigation } from "@/components/Navigation";
@@ -31,39 +31,37 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-          <div className="min-h-screen">
-            <Navigation />
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/listings/create" element={<CreateListing />} />
-              <Route path="/listings/my-searches" element={<MySearches />} />
-              <Route path="/listings/favorites" element={<Favorites />} />
-              
-              {/* Route simplifiée pour les détails d'annonce par ID */}
-              <Route path="/listings/:id" element={<ListingDetail />} />
-              
-              {/* Routes pour les catégories */}
-              <Route path="/categories/:categoryId" element={<CategoryPage />} />
-              <Route path="/categories/:categoryId/:subcategoryId" element={<SubcategoryPage />} />
-              
-              {/* Autres routes */}
-              <Route path="/messages" element={<Messages />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/auth/signin" element={<SignIn />} />
-              <Route path="/auth/signup" element={<SignUp />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-            </Routes>
-            <Footer />
-            <Toaster />
-          </div>
-        </QueryClientProvider>
-      </AuthProvider>
-    </Router>
+    <AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <div className="min-h-screen">
+          <Navigation />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/listings/create" element={<CreateListing />} />
+            <Route path="/listings/my-searches" element={<MySearches />} />
+            <Route path="/listings/favorites" element={<Favorites />} />
+            
+            {/* Route simplifiée pour les détails d'annonce par ID */}
+            <Route path="/listings/:id" element={<ListingDetail />} />
+            
+            {/* Routes pour les catégories */}
+            <Route path="/categories/:categoryId" element={<CategoryPage />} />
+            <Route path="/categories/:categoryId/:subcategoryId" element={<SubcategoryPage />} />
+            
+            {/* Autres routes */}
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/auth/signin" element={<SignIn />} />
+            <Route path="/auth/signup" element={<SignUp />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Routes>
+          <Footer />
+          <Toaster />
+        </div>
+      </QueryClientProvider>
+    </AuthProvider>
   );
 }
 
