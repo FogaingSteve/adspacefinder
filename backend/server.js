@@ -5,9 +5,11 @@ const cors = require('cors');
 const listingsRoutes = require('./routes/listings');
 const categoriesRoutes = require('./routes/categories');
 const adminRoutes = require('./routes/admin');
+const usersRoutes = require('./routes/users');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const Admin = require('./models/Admin');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -15,6 +17,9 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Static file serving for uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Connexion à MongoDB
 mongoose.connect(process.env.MONGODB_URI)
@@ -47,6 +52,7 @@ createDefaultAdmin();
 app.use('/api/listings', listingsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/users', usersRoutes);
 
 // Route pour les villes
 app.get('/api/cities', (req, res) => {

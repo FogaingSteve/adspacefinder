@@ -171,7 +171,8 @@ const Dashboard = () => {
               <DialogTitle>Modifier l'annonce</DialogTitle>
             </DialogHeader>
             <EditListingForm 
-              listing={editingListing} 
+              listingId={editingListing.id}
+              initialData={editingListing}
               onSuccess={() => {
                 setEditingListing(null);
                 refetch();

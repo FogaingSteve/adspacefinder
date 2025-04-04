@@ -1,323 +1,356 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+
 import { useState, useEffect } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { useListingById } from "@/hooks/useListings";
-import { UserInfo } from "@/types/listing";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
+import { 
+  CaretLeft, Share, Heart, MapPin, Phone, Calendar, Tag, 
+  MessageCircle, Store, User, Mail
+} from "lucide-react";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useToggleFavorite } from "@/hooks/useListings";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
+import axios from "axios";
 
 const ListingDetail = () => {
-  const [showSafetyDialog, setShowSafetyDialog] = useState(false);
-  const [showPhoneNumber, setShowPhoneNumber] = useState(false);
   const { id } = useParams<{ id: string }>();
-  const location = useLocation();
-  const [imageErrors, setImageErrors] = useState<{[key: string]: boolean}>({});
+  const { user } = useAuth();
+  const [processingFavorite, setProcessingFavorite] = useState(false);
+  const toggleFavorite = useToggleFavorite();
   
-  console.log("Current URL:", window.location.href);
-  console.log("Listing ID from params:", id);
+  const { data: listing, isLoading, error } = useQuery({
+    queryKey: ['listing', id],
+    queryFn: async () => {
+      const response = await axios.get(`http://localhost:5000/api/listings/${id}`);
+      return response.data;
+    }
+  });
   
-  const { 
-    data: listing, 
-    isLoading, 
-    error: listingError 
-  } = useListingById(id || '', {
-    enabled: !!id && id !== 'undefined' && id !== 'null',
-    retry: 3,
-    refetchOnWindowFocus: false,
-    staleTime: 60000,
+  // Fetch seller info
+  const { data: seller } = useQuery({
+    queryKey: ['user', listing?.userId],
+    queryFn: async () => {
+      if (!listing?.userId) throw new Error("No seller ID");
+      
+      try {
+        // Attempt to fetch from your custom API first
+        const response = await axios.get(`http://localhost:5000/api/users/${listing.userId}`);
+        return response.data;
+      } catch (apiError) {
+        // If custom API fails, try Supabase as fallback
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', listing.userId)
+            .single();
+            
+          if (error) throw error;
+          return data;
+        } catch (supabaseError) {
+          console.error("Error fetching seller info:", supabaseError);
+          // Return minimal information if available
+          return { 
+            id: listing.userId,
+            name: listing.userName || "Vendeur anonyme"
+          };
+        }
+      }
+    },
+    enabled: !!listing?.userId
   });
 
-  useEffect(() => {
-    if (listingError) {
-      console.error("Error loading listing:", listingError);
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      toast.error("Vous devez être connecté pour ajouter aux favoris");
+      return;
     }
-  }, [listing, listingError]);
-
-  useEffect(() => {
-    if (listing) {
-      setImageErrors({});
-    }
-  }, [listing]);
-
-  const handleShare = (platform: string) => {
-    const url = window.location.href;
-    const text = listing ? `Découvrez cette annonce : ${listing.title} - ${listing.price}€` : '';
     
-    const shareUrls: Record<string, string> = {
-      whatsapp: `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-      email: `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(text + "\n\n" + url)}`
-    };
-
-    window.open(shareUrls[platform], "_blank");
-  };
-
-  const handleImageError = (imageUrl: string) => {
-    console.log(`Image failed to load: ${imageUrl}`);
-    setImageErrors(prev => ({...prev, [imageUrl]: true}));
-  };
-
-  const formatRelativeTime = (date: string | Date | undefined): string => {
-    if (!date) return "Date inconnue";
+    setProcessingFavorite(true);
     
     try {
-      const parsedDate = typeof date === 'string' ? new Date(date) : date;
-      return formatDistanceToNow(parsedDate, { locale: fr });
+      await toggleFavorite.mutateAsync({
+        listingId: id!,
+        userId: user.id
+      });
+      
+      toast.success("Favori mis à jour");
     } catch (error) {
-      console.error("Error formatting date:", error);
-      return "Date invalide";
+      console.error("Erreur toggle favori:", error);
+      toast.error("Erreur lors de l'ajout aux favoris");
+    } finally {
+      setProcessingFavorite(false);
     }
   };
-
-  const defaultUserInfo: UserInfo = {
-    full_name: 'Information vendeur non disponible',
-    email: 'Contact via la plateforme',
-    phone: undefined
+  
+  const handleShareListing = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success("Lien de l'annonce copié dans le presse-papier");
   };
-
-  if (!id || id === 'undefined' || id === 'null') {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert>
-          <AlertDescription>
-            Aucun identifiant d'annonce valide n'a été fourni.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (listingError) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert>
-          <AlertDescription>
-            Cette annonce est introuvable ou a été supprimée. Erreur: {(listingError as Error).message}
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
+  
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, 'PPP', { locale: fr });
+    } catch (error) {
+      return "Date inconnue";
+    }
+  };
+  
+  // Check if the listing is in the user's favorites
+  const isFavorite = () => {
+    if (!user || !listing?.favorites) return false;
+    return listing.favorites.includes(user.id);
+  };
+  
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto py-8 px-4">
+        <div className="mb-6">
+          <Skeleton className="h-6 w-32" />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
-            <Skeleton className="w-full h-[400px] rounded-lg" />
-            <div className="mt-6 space-y-4">
-              <Skeleton className="h-8 w-3/4" />
-              <Skeleton className="h-6 w-1/4" />
-              <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-96 w-full rounded-lg" />
+            <div className="mt-4">
+              <Skeleton className="h-8 w-3/4 mb-2" />
+              <Skeleton className="h-6 w-1/4 mb-4" />
+              <Skeleton className="h-20 w-full" />
             </div>
           </div>
           <div>
-            <Skeleton className="h-[200px] w-full rounded-lg" />
+            <Skeleton className="h-40 w-full rounded-lg mb-4" />
+            <Skeleton className="h-40 w-full rounded-lg" />
           </div>
         </div>
       </div>
     );
   }
-
-  if (!listing) {
+  
+  if (error || !listing) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert>
-          <AlertDescription>
+      <div className="container mx-auto py-8 px-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <h2 className="text-xl font-bold text-red-800 mb-2">Annonce non trouvée</h2>
+          <p className="text-red-700 mb-4">
             Cette annonce n'existe pas ou a été supprimée.
-          </AlertDescription>
-        </Alert>
+          </p>
+          <Link to="/">
+            <Button>
+              <CaretLeft className="mr-2 h-4 w-4" />
+              Retourner à l'accueil
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
-
-  const userInfo = listing.user || defaultUserInfo;
-  const hasValidUser = userInfo && 
-                      userInfo.full_name && 
-                      userInfo.full_name !== 'Information vendeur non disponible';
-
-  console.log("User info to display:", userInfo);
-  console.log("Has valid user:", hasValidUser);
-
-  const validImages = listing?.images && Array.isArray(listing.images) ? 
-    listing.images.filter(img => img && !imageErrors[img]) : 
-    [];
-    
-  const hasImages = validImages.length > 0;
-  const defaultImageUrl = 'https://placehold.co/400x300/e2e8f0/1e293b?text=Image+non+disponible';
-
+  
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 space-y-6">
-          {hasImages ? (
-            <Carousel className="w-full">
-              <CarouselContent>
-                {validImages.map((image: string, index: number) => (
-                  <CarouselItem key={index}>
-                    <div className="aspect-video relative overflow-hidden rounded-lg">
-                      <img
-                        src={image}
-                        alt={`${listing.title} - Image ${index + 1}`}
-                        className="object-cover w-full h-full"
-                        onError={() => handleImageError(image)}
-                        loading="lazy"
-                      />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
-            </Carousel>
-          ) : (
-            <div className="aspect-video relative overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center">
-              <img 
-                src={defaultImageUrl}
-                alt="Image non disponible"
-                className="object-contain w-full h-full"
-              />
-            </div>
+    <div className="container mx-auto py-8 px-4">
+      <div className="mb-6 flex items-center">
+        <Link to="/" className="text-gray-500 hover:text-gray-700 mr-4">
+          <CaretLeft className="h-5 w-5" />
+        </Link>
+        <div className="text-sm breadcrumbs text-gray-500">
+          <span>Accueil</span>
+          <span className="mx-2">/</span>
+          {listing.category && (
+            <>
+              <Link to={`/categories/${listing.category}`} className="hover:text-primary">
+                {listing.category}
+              </Link>
+              <span className="mx-2">/</span>
+            </>
           )}
-
-          <Card>
-            <CardHeader>
-              <h1 className="text-2xl font-bold">{listing.title}</h1>
-              <p className="text-2xl font-bold text-primary">{listing.price} CFA</p>
-              {listing.isSold && (
-                <span className="bg-red-500 text-white px-2 py-1 rounded text-sm">
-                  Vendu
-                </span>
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h2 className="font-semibold mb-2">Description</h2>
-                  <p className="text-gray-600">{listing.description}</p>
-                </div>
-                <div>
-                  <h2 className="font-semibold mb-2">Localisation</h2>
-                  <p className="text-gray-600 flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    {listing.location}
-                  </p>
-                </div>
-                <div>
-                  <h2 className="font-semibold mb-2">Catégorie</h2>
-                  <p className="text-gray-600">
-                    {listing.category} {listing.subcategory ? `> ${listing.subcategory}` : ''}
-                  </p>
-                </div>
-                <div>
-                  <h2 className="font-semibold mb-2">Date de publication</h2>
-                  <p className="text-gray-600">
-                    {formatRelativeTime(listing.createdAt)}
-                  </p>
+          <span className="text-gray-700">{listing.title}</span>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="md:col-span-2">
+          {/* Images carousel */}
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+            {listing.images && listing.images.length > 0 ? (
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {listing.images.map((img: string, index: number) => (
+                    <CarouselItem key={index}>
+                      <div className="aspect-video w-full overflow-hidden">
+                        <img
+                          src={img}
+                          alt={`${listing.title} - image ${index + 1}`}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://placehold.co/800x600/e2e8f0/1e293b?text=Image+non+disponible";
+                          }}
+                        />
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+              </Carousel>
+            ) : (
+              <div className="aspect-video bg-gray-100 flex items-center justify-center">
+                <p className="text-gray-500">Aucune image disponible</p>
+              </div>
+            )}
+          </div>
+          
+          {/* Title and description */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h1 className="text-2xl font-bold mb-2">{listing.title}</h1>
+                <div className="flex items-center text-gray-500 mb-2">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  <span>{listing.location}</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div>
-          <Card>
-            <CardHeader>
-              <h2 className="text-xl font-semibold">Contacter le vendeur</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="border-b pb-4">
-                  <p className="font-medium text-lg">
-                    {userInfo?.full_name || defaultUserInfo.full_name}
-                  </p>
-                  {userInfo?.email && userInfo.email !== 'Email non disponible' && 
-                   userInfo.email !== 'Contact via la plateforme' && (
-                    <p className="text-gray-600">{userInfo.email}</p>
-                  )}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleShareListing}
+                >
+                  <Share className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleToggleFavorite}
+                  disabled={processingFavorite}
+                  className={isFavorite() ? "text-red-500" : ""}
+                >
+                  <Heart className={`h-4 w-4 ${isFavorite() ? "fill-current" : ""}`} />
+                </Button>
+              </div>
+            </div>
+            
+            <div className="text-2xl font-bold text-primary mb-4">
+              {listing.price.toLocaleString()} CFA
+            </div>
+            
+            {listing.isSold && (
+              <Badge variant="destructive" className="mb-4">
+                Vendu
+              </Badge>
+            )}
+            
+            <Separator className="my-4" />
+            
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold mb-2">Description</h2>
+              <p className="whitespace-pre-line">{listing.description}</p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 mt-6">
+              <div className="flex items-center">
+                <Calendar className="h-4 w-4 mr-2 text-gray-500" />
+                <div>
+                  <div className="text-sm text-gray-500">Date de publication</div>
+                  <div>{formatDate(listing.createdAt)}</div>
                 </div>
-                <div className="flex flex-col gap-3">
-                  {userInfo?.phone && (
-                    <Button 
-                      className="w-full"
-                      onClick={() => setShowSafetyDialog(true)}
-                    >
-                      <Phone className="mr-2" />
-                      {showPhoneNumber ? userInfo.phone : "Afficher le numéro"}
-                    </Button>
-                  )}
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 flex items-center gap-2"
-                      onClick={() => handleShare("whatsapp")}
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      WhatsApp
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 flex items-center gap-2"
-                      onClick={() => handleShare("facebook")}
-                    >
-                      <Facebook className="h-4 w-4" />
-                      Facebook
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 flex items-center gap-2"
-                      onClick={() => handleShare("email")}
-                    >
-                      <Mail className="h-4 w-4" />
-                      Email
-                    </Button>
+              </div>
+              
+              {listing.category && (
+                <div className="flex items-center">
+                  <Tag className="h-4 w-4 mr-2 text-gray-500" />
+                  <div>
+                    <div className="text-sm text-gray-500">Catégorie</div>
+                    <Link to={`/categories/${listing.category}`} className="hover:text-primary">
+                      {listing.category}
+                    </Link>
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          {/* Seller info card */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <Store className="h-5 w-5 mr-2" />
+                Informations sur le vendeur
+              </h3>
+              
+              {seller ? (
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-2 text-gray-500" />
+                    <span>{seller.name || seller.full_name || "Nom non spécifié"}</span>
+                  </div>
+                  
+                  {/* Link to seller profile instead of showing info directly */}
+                  <Link 
+                    to={`/profile/${seller.id}`}
+                    className="block w-full"
+                  >
+                    <Button className="w-full">
+                      Voir le profil du vendeur
+                    </Button>
+                  </Link>
+                  
+                  <Link 
+                    to={`/messages`}
+                    state={{ sellerId: seller.id, listingId: listing.id }}
+                    className="block w-full mt-2"
+                  >
+                    <Button variant="outline" className="w-full">
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Contacter le vendeur
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="text-gray-500 text-center py-4">
+                  Chargement des informations du vendeur...
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          
+          {/* Safety tips */}
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-semibold mb-4">Conseils de sécurité</h3>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li className="flex items-start">
+                  <span className="bg-primary/10 text-primary rounded-full w-5 h-5 flex items-center justify-center mr-2 mt-0.5">1</span>
+                  <span>Rencontrez le vendeur dans un lieu public sécurisé</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="bg-primary/10 text-primary rounded-full w-5 h-5 flex items-center justify-center mr-2 mt-0.5">2</span>
+                  <span>Vérifiez le produit avant de payer</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="bg-primary/10 text-primary rounded-full w-5 h-5 flex items-center justify-center mr-2 mt-0.5">3</span>
+                  <span>Ne payez pas d'avance ou via des services de transfert non sécurisés</span>
+                </li>
+              </ul>
             </CardContent>
           </Card>
         </div>
       </div>
-
-      <Dialog open={showSafetyDialog} onOpenChange={setShowSafetyDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Conseils de sécurité</DialogTitle>
-          </DialogHeader>
-          <Alert>
-            <AlertDescription>
-              <ol className="list-decimal pl-4 space-y-2">
-                <li>Ne pas envoyer de paiements sans avoir vérifié le produit.</li>
-                <li>Ne pas envoyer d'argent par des moyens de transfert d'argent, par virement bancaire ou par n'importe quels autres moyens.</li>
-                <li>Donner rdv au vendeur dans un lieu public à une heure de passage.</li>
-              </ol>
-            </AlertDescription>
-          </Alert>
-          <DialogFooter>
-            <Button 
-              onClick={() => {
-                setShowPhoneNumber(true);
-                setShowSafetyDialog(false);
-              }}
-            >
-              OK
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

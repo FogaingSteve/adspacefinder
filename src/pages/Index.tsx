@@ -1,9 +1,10 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RecentListings } from "@/components/RecentListings";
 import { useSearchListings } from "@/hooks/useListings";
 import { toast } from "sonner";
@@ -15,8 +16,8 @@ import axios from "axios";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 
-const cities = ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda", "Kribi"];
 const priceRanges = [
+  "Tous les prix",
   "0 - 500,000 CFA",
   "500,000 - 2,000,000 CFA",
   "2,000,000 - 10,000,000 CFA",
@@ -24,10 +25,17 @@ const priceRanges = [
 ];
 
 const Index = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [priceRange, setPriceRange] = useState("");
+  const [filters, setFilters] = useState({
+    category: "",
+    city: "",
+    priceMin: 0,
+    priceMax: 0
+  });
 
   const formatRelativeDate = (dateString: string | Date) => {
     try {
@@ -49,20 +57,77 @@ const Index = () => {
         return response.data;
       } catch (error) {
         console.error("Failed to fetch cities:", error);
-        return cities; // Fallback to static cities
+        return ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda", "Kribi"]; // Fallback to static cities
       }
     }
   });
 
-  const { data: searchResults, isLoading } = useSearchListings(searchQuery);
+  // Parse price range to min and max values
+  const parsePriceRange = (range: string) => {
+    if (range === "Tous les prix" || !range) {
+      return { min: 0, max: 0 }; // 0 means no limit
+    }
+    
+    const parts = range.split(' - ');
+    if (parts.length !== 2) {
+      return { min: 0, max: 0 };
+    }
+    
+    let min = parseInt(parts[0].replace(/\D/g, ''));
+    let max = parts[1].includes('+') 
+      ? Number.MAX_SAFE_INTEGER 
+      : parseInt(parts[1].replace(/\D/g, ''));
+      
+    return { min, max };
+  };
 
-  const handleSearch = () => {
-    if (!searchQuery.trim()) {
-      toast.error("Veuillez entrer un terme de recherche");
+  // Apply filters when the search button is clicked
+  const applyFilters = () => {
+    if (!searchQuery.trim() && !selectedCategory && !selectedCity && !priceRange) {
+      toast.error("Veuillez sélectionner au moins un critère de recherche");
       return;
     }
-    toast.success("Recherche en cours...");
+    
+    const { min: priceMin, max: priceMax } = parsePriceRange(priceRange);
+    
+    setFilters({
+      category: selectedCategory,
+      city: selectedCity,
+      priceMin,
+      priceMax
+    });
+    
+    // Construct query parameters for URL
+    const queryParams = new URLSearchParams();
+    
+    if (searchQuery) queryParams.set('q', searchQuery);
+    if (selectedCategory) queryParams.set('category', selectedCategory);
+    if (selectedCity) queryParams.set('city', selectedCity);
+    if (priceMin > 0) queryParams.set('priceMin', priceMin.toString());
+    if (priceMax > 0) queryParams.set('priceMax', priceMax.toString());
+    
+    // Navigate to search results page with filters
+    if (queryParams.toString()) {
+      navigate(`/search?${queryParams.toString()}`);
+    } else {
+      toast.error("Veuillez spécifier au moins un critère de recherche");
+    }
   };
+
+  // Make search query when enter key is pressed
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      applyFilters();
+    }
+  };
+
+  const { data: searchResults, isLoading } = useSearchListings(
+    searchQuery,
+    filters.category,
+    filters.city,
+    filters.priceMin,
+    filters.priceMax
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -81,11 +146,11 @@ const Index = () => {
                 className="bg-white"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                onKeyPress={handleKeyPress}
               />
               <Button 
                 className="bg-white text-primary hover:bg-gray-100"
-                onClick={handleSearch}
+                onClick={applyFilters}
                 disabled={isLoading}
               >
                 <Search className="h-4 w-4" />
@@ -97,6 +162,7 @@ const Index = () => {
                   <SelectValue placeholder="Catégorie" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Toutes les catégories</SelectItem>
                   {categoriesLoading ? (
                     <SelectItem value="loading" disabled>Chargement...</SelectItem>
                   ) : (
@@ -113,7 +179,8 @@ const Index = () => {
                   <SelectValue placeholder="Ville" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(citiesData || cities).map((city: string) => (
+                  <SelectItem value="">Toutes les villes</SelectItem>
+                  {(citiesData || ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda", "Kribi"]).map((city: string) => (
                     <SelectItem key={city} value={city}>
                       {city}
                     </SelectItem>

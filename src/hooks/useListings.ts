@@ -1,275 +1,239 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listingService } from "@/services/api";
-import { CreateListingDTO, Listing } from "@/types/listing";
-import { toast } from "sonner";
+import axios from "axios";
 import { supabase } from "@/lib/supabase";
+import { listingService } from "@/services/api";
+import { toast } from "sonner";
 
-export const useCreateListing = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: CreateListingDTO) => listingService.createListing(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recentListings'] });
-      queryClient.invalidateQueries({ queryKey: ['userListings'] });
-      queryClient.invalidateQueries({ queryKey: ['categoryListings'] });
-      toast.success("Annonce créée avec succès");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Erreur lors de la création de l'annonce");
-    }
-  });
-};
-
-export const useUpdateListing = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateListingDTO> }) => 
-      listingService.updateListing(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userListings'] });
-      toast.success("Annonce mise à jour avec succès");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Erreur lors de la mise à jour de l'annonce");
-    }
-  });
-};
-
-export const useDeleteListing = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: string) => listingService.deleteListing(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userListings'] });
-      toast.success("Annonce supprimée avec succès");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Erreur lors de la suppression de l'annonce");
-    }
-  });
-};
-
-export const useMarkListingAsSold = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: string) => listingService.markAsSold(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userListings'] });
-      queryClient.invalidateQueries({ queryKey: ['recentListings'] });
-      queryClient.invalidateQueries({ queryKey: ['listingById'] });
-      toast.success("Annonce marquée comme vendue");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Erreur lors du marquage comme vendu");
-    }
-  });
-};
-
-export const useUserListings = (userId: string) => {
-  return useQuery({
-    queryKey: ['userListings', userId],
-    queryFn: () => listingService.getUserListings(userId),
-    enabled: !!userId,
-  });
-};
-
+// Get recent listings
 export const useRecentListings = () => {
   return useQuery({
-    queryKey: ['recentListings'],
-    queryFn: () => listingService.getRecentListings(),
-    retry: 3,
-    retryDelay: 1000,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-};
-
-export const useListingById = (id: string, options = {}) => {
-  return useQuery({
-    queryKey: ['listing', id],
+    queryKey: ["recentListings"],
     queryFn: async () => {
       try {
-        if (!id || id === 'undefined' || id === 'null') {
-          throw new Error('ID invalide');
-        }
-        
-        console.log('Fetching listing by ID:', id);
-        const listing = await listingService.getListingById(id);
-        console.log('Listing found:', listing);
-        
-        // Always try to get seller information regardless of who is logged in
-        if (listing && listing.userId) {
-          console.log('Fetching user profile for userId:', listing.userId);
-          
-          try {
-            // Try to get user from Supabase profiles
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', listing.userId)
-              .single();
-            
-            if (!profileError && profileData) {
-              console.log('User profile found from profiles table:', profileData);
-              listing.user = {
-                full_name: profileData.full_name || profileData.name || 'Vendeur',
-                email: profileData.email || 'Contact via la plateforme',
-                phone: profileData.phone || undefined,
-                avatar_url: profileData.avatar_url || undefined
-              };
-              return listing;
-            }
-          } catch (profilesError) {
-            console.error('Error with profiles table:', profilesError);
-          }
-          
-          // Try to get user from Supabase auth
-          try {
-            const { data: userData } = await supabase.auth.getUser(listing.userId);
-            
-            if (userData && userData.user) {
-              console.log('User data found from Auth:', userData.user);
-              
-              listing.user = {
-                full_name: userData.user.user_metadata?.full_name || 
-                          userData.user.user_metadata?.name || 
-                          'Vendeur',
-                email: userData.user.email || 'Email non disponible',
-                phone: userData.user.user_metadata?.phone || undefined,
-                avatar_url: userData.user.user_metadata?.avatar_url || undefined
-              };
-              
-              return listing;
-            }
-          } catch (authError) {
-            console.log('Auth method error:', authError);
-          }
-          
-          // Try users table as a last resort
-          try {
-            const { data: userData, error: userError } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', listing.userId)
-              .single();
-            
-            if (!userError && userData) {
-              console.log('User data found from users table:', userData);
-              listing.user = {
-                full_name: userData.full_name || userData.name || 'Vendeur',
-                email: userData.email || 'Email non disponible',
-                phone: userData.phone || undefined,
-                avatar_url: userData.avatar_url || undefined
-              };
-              return listing;
-            }
-          } catch (usersError) {
-            console.error('Error with users table:', usersError);
-          }
-          
-          // If we couldn't find user information anywhere, use a placeholder
-          listing.user = {
-            full_name: 'Vendeur #' + listing.userId.substring(0, 6),
-            email: 'Contact via la plateforme',
-            phone: undefined
-          };
-        }
-        
-        return listing;
+        const response = await axios.get("http://localhost:5000/api/listings/recent");
+        return response.data;
       } catch (error) {
-        console.error('Error in useListingById:', error);
+        console.error("Error fetching recent listings:", error);
         throw error;
       }
-    },
-    enabled: !!id && id !== 'undefined' && id !== 'null',
-    retry: 2,
-    ...options
-  });
-};
-
-export const useListingByTitle = (title: string, category: string, options = {}) => {
-  return useQuery({
-    queryKey: ['listingByTitle', title, category],
-    queryFn: async () => {
-      try {
-        const decodedTitle = decodeURIComponent(title);
-        console.log(`Fetching listing with decoded title: "${decodedTitle}" in category: "${category}"`);
-        
-        if (!decodedTitle) {
-          throw new Error('Titre manquant pour la recherche');
-        }
-        
-        const listing = await listingService.getListingByTitle(decodedTitle, category);
-        console.log('Found listing by title:', listing);
-        return listing;
-      } catch (error) {
-        console.error("Error fetching listing by title:", error);
-        throw error;
-      }
-    },
-    enabled: !!title,
-    retry: 2,
-    staleTime: 1000 * 60,
-    ...options
-  });
-};
-
-export const useSearchListings = (query: string, category?: string, exactTitle?: string) => {
-  return useQuery({
-    queryKey: ['searchListings', query, category, exactTitle],
-    queryFn: () => listingService.searchListings(query, category, exactTitle),
-    enabled: !!query,
-    retry: 1,
-  });
-};
-
-export const useCategoryListings = (categoryId: string, subcategoryId?: string) => {
-  return useQuery({
-    queryKey: ['categoryListings', categoryId, subcategoryId],
-    queryFn: () => {
-      if (subcategoryId) {
-        return listingService.searchListings('', categoryId);
-      }
-      return listingService.getListingsByCategory(categoryId);
-    },
-    enabled: !!categoryId,
-  });
-};
-
-export const useUploadImages = () => {
-  return useMutation({
-    mutationFn: (files: File[]) => listingService.uploadImages(files),
-    onError: (error: Error) => {
-      toast.error(error.message || "Erreur lors de l'upload des images");
     }
   });
 };
 
+// Search listings with enhanced filtering
+export const useSearchListings = (
+  query: string = "",
+  category: string = "",
+  city: string = "",
+  priceMin: number = 0,
+  priceMax: number = 0
+) => {
+  return useQuery({
+    queryKey: ["searchListings", query, category, city, priceMin, priceMax],
+    queryFn: async () => {
+      try {
+        console.log("Searching with params:", { query, category, city, priceMin, priceMax });
+        
+        // Construct the query parameters
+        const params: Record<string, string> = {};
+        if (query) params.q = query;
+        if (category) params.category = category;
+        
+        // Fetch from search endpoint
+        const response = await axios.get("http://localhost:5000/api/listings/search-results", { 
+          params 
+        });
+        
+        // Client-side filtering for location and price if needed
+        let results = response.data;
+        
+        // Filter by city if specified
+        if (city) {
+          results = results.filter((listing: any) => 
+            listing.location?.toLowerCase().includes(city.toLowerCase())
+          );
+        }
+        
+        // Filter by price range if specified
+        if (priceMin > 0 || priceMax > 0) {
+          results = results.filter((listing: any) => {
+            const price = parseFloat(listing.price);
+            
+            // If only min price specified
+            if (priceMin > 0 && priceMax === 0) {
+              return price >= priceMin;
+            }
+            
+            // If only max price specified
+            if (priceMin === 0 && priceMax > 0) {
+              return price <= priceMax;
+            }
+            
+            // If both min and max specified
+            if (priceMin > 0 && priceMax > 0) {
+              return price >= priceMin && price <= priceMax;
+            }
+            
+            return true;
+          });
+        }
+        
+        console.log(`Search returned ${results.length} results after filtering`);
+        return results;
+      } catch (error) {
+        console.error("Error searching listings:", error);
+        throw error;
+      }
+    },
+    enabled: query.length > 0 || category.length > 0 || city.length > 0 || priceMin > 0 || priceMax > 0
+  });
+};
+
+// Get listings by category
+export const useCategoryListings = (categoryId: string, limit?: number) => {
+  return useQuery({
+    queryKey: ["categoryListings", categoryId],
+    queryFn: async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/listings/category/${categoryId}`);
+        return limit ? response.data.slice(0, limit) : response.data;
+      } catch (error) {
+        console.error(`Error fetching listings for category ${categoryId}:`, error);
+        throw error;
+      }
+    },
+    enabled: !!categoryId
+  });
+};
+
+// Get subcategory listings
+export const useSubcategoryListings = (categoryId: string, subcategoryId: string, limit?: number) => {
+  return useQuery({
+    queryKey: ["subcategoryListings", categoryId, subcategoryId],
+    queryFn: async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:5000/api/listings/category/${categoryId}/subcategory/${subcategoryId}`
+        );
+        return limit ? response.data.slice(0, limit) : response.data;
+      } catch (error) {
+        console.error(`Error fetching listings for subcategory ${subcategoryId}:`, error);
+        throw error;
+      }
+    },
+    enabled: !!categoryId && !!subcategoryId
+  });
+};
+
+// Get user listings
+export const useUserListings = (userId: string) => {
+  return useQuery({
+    queryKey: ["userListings", userId],
+    queryFn: async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/listings/user/${userId}`);
+        return response.data;
+      } catch (error) {
+        console.error(`Error fetching listings for user ${userId}:`, error);
+        throw error;
+      }
+    },
+    enabled: !!userId
+  });
+};
+
+// Delete listing
+export const useDeleteListing = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (listingId: string) => {
+      const response = await axios.delete(`http://localhost:5000/api/listings/${listingId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: ["userListings"] });
+      queryClient.invalidateQueries({ queryKey: ["recentListings"] });
+    }
+  });
+};
+
+// Mark listing as sold
+export const useMarkListingAsSold = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (listingId: string) => {
+      const response = await axios.put(
+        `http://localhost:5000/api/listings/${listingId}/sold`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: ["userListings"] });
+      queryClient.invalidateQueries({ queryKey: ["recentListings"] });
+    }
+  });
+};
+
+// Toggle favorite
 export const useToggleFavorite = () => {
   const queryClient = useQueryClient();
-
+  
   return useMutation({
-    mutationFn: ({ listingId, userId }: { listingId: string; userId: string }) =>
-      listingService.toggleFavorite(listingId, userId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['favorites'] });
-      queryClient.invalidateQueries({ queryKey: ['recentListings'] });
-      queryClient.invalidateQueries({ queryKey: ['categoryListings'] });
-      queryClient.invalidateQueries({ queryKey: ['userListings'] });
+    mutationFn: async ({
+      listingId,
+      userId
+    }: {
+      listingId: string;
+      userId: string;
+    }) => {
+      const response = await axios.post(
+        `http://localhost:5000/api/listings/${listingId}/favorite`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: ["listing", variables.listingId] });
+      queryClient.invalidateQueries({ queryKey: ["favoriteListings", variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ["recentListings"] });
     }
   });
 };
 
-export const useFavorites = (userId: string) => {
+// Get favorite listings
+export const useFavoriteListings = (userId: string) => {
   return useQuery({
-    queryKey: ['favorites', userId],
-    queryFn: () => listingService.getFavorites(userId),
-    enabled: !!userId,
-    retry: 2,
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    queryKey: ["favoriteListings", userId],
+    queryFn: async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/listings/favorites/${userId}`);
+        return response.data;
+      } catch (error) {
+        console.error(`Error fetching favorites for user ${userId}:`, error);
+        throw error;
+      }
+    },
+    enabled: !!userId
   });
 };

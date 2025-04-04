@@ -9,6 +9,7 @@ import MyListings from "@/pages/MyListings";
 import Favorites from "@/pages/Favorites";
 import Messages from "@/pages/Messages";
 import Profile from "@/pages/Profile";
+import ProfileView from "@/pages/ProfileView";
 import Settings from "@/pages/Settings";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
@@ -24,7 +25,7 @@ import {
   Routes,
   Route,
 } from "react-router-dom";
-import { ThemeProvider } from "@/components/ui/theme-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/hooks/useAuth";
@@ -54,6 +55,7 @@ function App() {
                 <Route path="/favorites" element={<Favorites />} />
                 <Route path="/messages" element={<Messages />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/profile/:id" element={<ProfileView />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
