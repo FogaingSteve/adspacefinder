@@ -6,28 +6,33 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { categoryIcons } from "@/data/topCategories";
 import { Link } from "react-router-dom";
 import { categoryService, listingService } from "@/services/api";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const CategoryPage = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
 
+  console.log("CategoryPage - categoryId:", categoryId);
+
   // Fetch category info from MongoDB
-  const { data: category, isLoading: categoryLoading } = useQuery({
+  const { data: category, isLoading: categoryLoading, error: categoryError } = useQuery({
     queryKey: ['category', categoryId],
     queryFn: async () => {
       if (!categoryId) return null;
       return await categoryService.getCategory(categoryId);
     },
-    enabled: !!categoryId
+    enabled: !!categoryId,
+    retry: 3
   });
 
   // Fetch listings count for each subcategory
-  const { data: categoryListings, isLoading: listingsLoading } = useQuery({
+  const { data: categoryListings, isLoading: listingsLoading, error: listingsError } = useQuery({
     queryKey: ['category-listings', categoryId],
     queryFn: async () => {
       if (!categoryId) return [];
       return await listingService.getListingsByCategory(categoryId);
     },
-    enabled: !!categoryId
+    enabled: !!categoryId,
+    retry: 3
   });
 
   // Calculate subcategory counts
@@ -37,6 +42,20 @@ const CategoryPage = () => {
   };
 
   const isLoading = categoryLoading || listingsLoading;
+  const error = categoryError || listingsError;
+
+  if (error) {
+    console.error("Error loading category:", error);
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert>
+          <AlertDescription>
+            Erreur lors du chargement des données: {(error as Error).message}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

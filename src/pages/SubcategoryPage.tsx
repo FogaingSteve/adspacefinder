@@ -5,19 +5,36 @@ import { useQuery } from "@tanstack/react-query";
 import { categoryService } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { categoryIcons } from "@/data/topCategories";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const SubcategoryPage = () => {
   const { categoryId, subcategoryId } = useParams<{ categoryId: string; subcategoryId: string }>();
 
+  console.log("SubcategoryPage params:", { categoryId, subcategoryId });
+
   // Fetch subcategory info from MongoDB
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['subcategory', categoryId, subcategoryId],
     queryFn: async () => {
       if (!categoryId || !subcategoryId) return null;
       return await categoryService.getSubcategory(categoryId, subcategoryId);
     },
-    enabled: !!categoryId && !!subcategoryId
+    enabled: !!categoryId && !!subcategoryId,
+    retry: 3
   });
+
+  if (error) {
+    console.error("Error fetching subcategory:", error);
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert>
+          <AlertDescription>
+            Erreur lors du chargement des données: {(error as Error).message}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

@@ -417,4 +417,22 @@ router.get('/search', async (req, res) => {
   }
 });
 
+// Add a specific route for category/subcategory
+router.get('/category/:categoryId/subcategory/:subcategoryId', async (req, res) => {
+  try {
+    console.log(`Getting listings for category ${req.params.categoryId} and subcategory ${req.params.subcategoryId}`);
+    
+    const listings = await Listing.find({ 
+      category: req.params.categoryId,
+      subcategory: req.params.subcategoryId
+    }).sort({ createdAt: -1 });
+    
+    console.log(`Found ${listings.length} listings for subcategory ${req.params.subcategoryId}`);
+    res.json(listings);
+  } catch (error) {
+    console.error("Error getting subcategory listings:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

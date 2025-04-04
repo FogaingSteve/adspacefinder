@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Facebook, Mail, MessageSquare, MapPin } from "lucide-react";
@@ -47,7 +46,6 @@ const ListingDetail = () => {
     }
   }, [listing, listingError]);
 
-  // Reset image errors when listing changes
   useEffect(() => {
     if (listing) {
       setImageErrors({});
@@ -146,7 +144,6 @@ const ListingDetail = () => {
     );
   }
 
-  // Check if user information is valid
   const userInfo = listing.user || defaultUserInfo;
   const hasValidUser = userInfo && 
                       userInfo.full_name && 
@@ -155,7 +152,6 @@ const ListingDetail = () => {
   console.log("User info to display:", userInfo);
   console.log("Has valid user:", hasValidUser);
 
-  // Filter out images that failed to load and make sure images exist
   const validImages = listing?.images && Array.isArray(listing.images) ? 
     listing.images.filter(img => img && !imageErrors[img]) : 
     [];
@@ -246,17 +242,15 @@ const ListingDetail = () => {
               <div className="space-y-4">
                 <div className="border-b pb-4">
                   <p className="font-medium text-lg">
-                    {hasValidUser 
-                      ? userInfo.full_name.replace(/^Vendeur #[a-f0-9]{6}$/, 'Vendeur') 
-                      : 'Information vendeur non disponible'}
+                    {userInfo?.full_name || defaultUserInfo.full_name}
                   </p>
-                  {hasValidUser && userInfo.email && userInfo.email !== 'Email non disponible' && 
+                  {userInfo?.email && userInfo.email !== 'Email non disponible' && 
                    userInfo.email !== 'Contact via la plateforme' && (
                     <p className="text-gray-600">{userInfo.email}</p>
                   )}
                 </div>
                 <div className="flex flex-col gap-3">
-                  {hasValidUser && userInfo.phone && (
+                  {userInfo?.phone && (
                     <Button 
                       className="w-full"
                       onClick={() => setShowSafetyDialog(true)}
