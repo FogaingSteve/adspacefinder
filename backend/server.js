@@ -1,8 +1,13 @@
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const listingsRoutes = require('./routes/listings');
 const categoriesRoutes = require('./routes/categories');
+const adminRoutes = require('./routes/admin');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const Admin = require('./models/Admin');
 require('dotenv').config();
 
 const app = express();
@@ -16,9 +21,32 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connecté à MongoDB'))
   .catch(err => console.error('Erreur de connexion à MongoDB:', err));
 
+// Vérifier et créer un admin par défaut si nécessaire
+const createDefaultAdmin = async () => {
+  try {
+    const adminExists = await Admin.findOne({ email: 'admin@admin.com' });
+    
+    if (!adminExists) {
+      const defaultAdmin = new Admin({
+        email: 'admin@admin.com',
+        password: 'admin123', // Sera hashé automatiquement
+        name: 'Administrateur'
+      });
+      
+      await defaultAdmin.save();
+      console.log('Admin par défaut créé');
+    }
+  } catch (error) {
+    console.error('Erreur création admin par défaut:', error);
+  }
+};
+
+createDefaultAdmin();
+
 // Initialiser les routes
 app.use('/api/listings', listingsRoutes);
 app.use('/api/categories', categoriesRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Route pour les villes
 app.get('/api/cities', (req, res) => {

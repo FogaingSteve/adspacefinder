@@ -229,7 +229,7 @@ export const listingService = {
         throw new Error('Annonce non trouvée');
       }
     
-      // Récupérer les informations du vendeur
+      // Récupérer les informations du vendeur si userId existe
       if (response.data && response.data.userId) {
         try {
           console.log("Fetching user info for userId:", response.data.userId);
@@ -256,7 +256,38 @@ export const listingService = {
             console.log("Profiles table error:", profileErr);
           }
           
-          // Si aucune information utilisateur n'est trouvée, utiliser un placeholder
+          // Si aucune information utilisateur n'est trouvée dans profiles, essayer auth
+          try {
+            const { data: userData } = await supabase.auth.admin.getUserById(response.data.userId);
+            
+            if (userData && userData.user) {
+              console.log("User found from auth admin:", userData);
+              response.data.user = {
+                full_name: userData.user.user_metadata?.full_name || userData.user.user_metadata?.name || 'Vendeur',
+                email: userData.user.email || 'Contact via la plateforme',
+                phone: userData.user.user_metadata?.phone || undefined,
+                avatar_url: userData.user.user_metadata?.avatar_url || undefined
+              };
+              return response.data;
+            }
+          } catch (authErr) {
+            console.log("Auth admin error, trying regular auth:", authErr);
+            
+            // Fallback to regular auth if admin fails
+            const { data: regularUserData } = await supabase.auth.getUser(response.data.userId);
+            if (regularUserData && regularUserData.user) {
+              console.log("User found from regular auth:", regularUserData);
+              response.data.user = {
+                full_name: regularUserData.user.user_metadata?.full_name || regularUserData.user.user_metadata?.name || 'Vendeur',
+                email: regularUserData.user.email || 'Contact via la plateforme',
+                phone: regularUserData.user.user_metadata?.phone || undefined,
+                avatar_url: regularUserData.user.user_metadata?.avatar_url || undefined
+              };
+              return response.data;
+            }
+          }
+          
+          // Si toujours aucune information, utiliser un placeholder
           response.data.user = {
             full_name: `Vendeur #${response.data.userId.substring(0, 6)}`,
             email: 'Contact via la plateforme',
