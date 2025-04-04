@@ -23,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import EditListingForm from "@/components/EditListingForm";
+import { EditListingForm } from "@/components/EditListingForm";
 
 const Dashboard = () => {
   const { user } = useAuth();

@@ -1,3 +1,4 @@
+
 import Index from "@/pages/Index";
 import SignIn from "@/pages/auth/SignIn";
 import SignUp from "@/pages/auth/SignUp";
@@ -16,14 +17,14 @@ import FAQ from "@/pages/FAQ";
 import CategoryPage from "@/pages/CategoryPage";
 import SubcategoryPage from "@/pages/SubcategoryPage";
 import MySearches from "@/pages/MySearches";
-import Navigation from "@/components/Navigation";
-import Footer from "@/components/Footer";
+import { Navigation } from "@/components/Navigation";
+import { Footer } from "@/components/Footer";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
 } from "react-router-dom";
-import { ThemeProvider } from "@/components/ui/theme-provider"
+import { ThemeProvider } from "@/components/ui/theme-provider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/hooks/useAuth";

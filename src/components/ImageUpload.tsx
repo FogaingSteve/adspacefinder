@@ -1,24 +1,33 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
+import { UseFormSetValue, UseFormRegister, FieldErrors } from "react-hook-form";
+import { CreateListingDTO } from "@/types/listing";
 
 interface ImageUploadProps {
-  value: string[];
-  onChange: (value: string[]) => void;
-  onRemove: (url: string) => void;
+  value?: string[];
+  onChange?: (value: string[]) => void;
+  onRemove?: (url: string) => void;
   images?: string[];
   setImages?: (images: string[]) => void;
+  onImageUpload?: (images: File[]) => Promise<string[]>;
+  setValue?: UseFormSetValue<CreateListingDTO>;
+  register?: UseFormRegister<CreateListingDTO>;
+  errors?: FieldErrors<CreateListingDTO>;
 }
 
 export const ImageUpload = ({
   value = [], 
-  onChange,
-  onRemove,
+  onChange = () => {},
+  onRemove = () => {},
   images,
-  setImages
+  setImages,
+  onImageUpload,
+  setValue,
+  register,
+  errors
 }: ImageUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [imageStatus, setImageStatus] = useState<Record<string, boolean>>({});
@@ -30,6 +39,9 @@ export const ImageUpload = ({
   const handleChange = (newImages: string[]) => {
     if (setImages) {
       setImages(newImages);
+    }
+    if (setValue) {
+      setValue("images", newImages);
     }
     onChange(newImages);
   };
@@ -91,30 +103,48 @@ export const ImageUpload = ({
     }
     
     try {
-      // Upload des fichiers au serveur
-      const formData = new FormData();
-      validFiles.forEach(file => {
-        formData.append('images', file);
-      });
-      
-      const response = await axios.post('http://localhost:5000/api/listings/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      if (response.data && response.data.urls) {
-        // Mettre à jour le statut des nouvelles images
+      if (onImageUpload) {
+        // Use the provided onImageUpload function
+        const fileArray = Array.from(files);
+        const urls = await onImageUpload(fileArray);
+        
+        // Update image status
         const newStatus = {...imageStatus};
-        response.data.urls.forEach((url: string) => {
+        urls.forEach((url: string) => {
           newStatus[url] = true;
         });
         setImageStatus(newStatus);
         
-        // Ajouter les nouvelles URLs à la liste existante
-        const newImages = [...(Array.isArray(imagesToDisplay) ? imagesToDisplay : []), ...response.data.urls];
+        // Add new URLs to existing list
+        const newImages = [...(Array.isArray(imagesToDisplay) ? imagesToDisplay : []), ...urls];
         handleChange(newImages);
-        toast.success(`${response.data.urls.length} images téléchargées avec succès`);
+        toast.success(`${urls.length} images téléchargées avec succès`);
+      } else {
+        // Use the original upload method
+        const formData = new FormData();
+        Array.from(files).forEach(file => {
+          formData.append('images', file);
+        });
+        
+        const response = await axios.post('http://localhost:5000/api/listings/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        
+        if (response.data && response.data.urls) {
+          // Update image status
+          const newStatus = {...imageStatus};
+          response.data.urls.forEach((url: string) => {
+            newStatus[url] = true;
+          });
+          setImageStatus(newStatus);
+          
+          // Add new URLs to existing list
+          const newImages = [...(Array.isArray(imagesToDisplay) ? imagesToDisplay : []), ...response.data.urls];
+          handleChange(newImages);
+          toast.success(`${response.data.urls.length} images téléchargées avec succès`);
+        }
       }
     } catch (error) {
       console.error("Erreur lors de l'upload des images:", error);
@@ -130,7 +160,7 @@ export const ImageUpload = ({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {displayImages.map((url, index) => (
+        {Array.isArray(imagesToDisplay) && imagesToDisplay.filter(url => url).map((url, index) => (
           <div key={`${url}-${index}`} className="relative group">
             <div className="h-48 rounded-lg bg-gray-100 flex items-center justify-center">
               <img
