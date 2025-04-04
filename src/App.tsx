@@ -19,6 +19,10 @@ import SignUp from "@/pages/auth/SignUp";
 import CategoryPage from "@/pages/CategoryPage";
 import SubcategoryPage from "@/pages/SubcategoryPage";
 import ListingDetail from "@/pages/ListingDetail";
+import About from "@/pages/About";
+import Contact from "@/pages/Contact";
+import LegalInfo from "@/pages/LegalInfo";
+import FAQ from "@/pages/FAQ";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,6 +51,12 @@ function App() {
             {/* Routes pour les catégories */}
             <Route path="/categories/:categoryId" element={<CategoryPage />} />
             <Route path="/categories/:categoryId/:subcategoryId" element={<SubcategoryPage />} />
+            
+            {/* Routes pour les pages footer */}
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/legal" element={<LegalInfo />} />
+            <Route path="/faq" element={<FAQ />} />
             
             {/* Autres routes */}
             <Route path="/messages" element={<Messages />} />

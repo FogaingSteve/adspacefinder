@@ -5,13 +5,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { categoryIcons } from "@/data/topCategories";
 import { Link } from "react-router-dom";
-import { categoryService } from "@/services/api";
+import { categoryService, listingService } from "@/services/api";
 
 const CategoryPage = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
 
   // Fetch category info from MongoDB
-  const { data: category, isLoading } = useQuery({
+  const { data: category, isLoading: categoryLoading } = useQuery({
     queryKey: ['category', categoryId],
     queryFn: async () => {
       if (!categoryId) return null;
@@ -19,6 +19,24 @@ const CategoryPage = () => {
     },
     enabled: !!categoryId
   });
+
+  // Fetch listings count for each subcategory
+  const { data: categoryListings, isLoading: listingsLoading } = useQuery({
+    queryKey: ['category-listings', categoryId],
+    queryFn: async () => {
+      if (!categoryId) return [];
+      return await listingService.getListingsByCategory(categoryId);
+    },
+    enabled: !!categoryId
+  });
+
+  // Calculate subcategory counts
+  const getSubcategoryCount = (subcategoryId: string) => {
+    if (!categoryListings) return 0;
+    return categoryListings.filter(listing => listing.subcategory === subcategoryId).length;
+  };
+
+  const isLoading = categoryLoading || listingsLoading;
 
   if (isLoading) {
     return (
@@ -58,28 +76,35 @@ const CategoryPage = () => {
       </div>
       
       <div className="grid grid-cols-1 gap-6">
-        {category.subcategories.map((subcategory: any) => (
-          <div key={subcategory.id} className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold">{subcategory.name}</h2>
-              <Link 
-                to={`/categories/${categoryId}/${subcategory.id}`}
-                className="text-primary hover:underline"
-              >
-                Voir plus
-              </Link>
+        {category.subcategories.map((subcategory: any) => {
+          const count = getSubcategoryCount(subcategory.id);
+          
+          return (
+            <div key={subcategory.id} className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-semibold">
+                  {subcategory.name} 
+                  <span className="text-sm text-gray-500 ml-2">({count} annonces)</span>
+                </h2>
+                <Link 
+                  to={`/categories/${categoryId}/${subcategory.id}`}
+                  className="text-primary hover:underline"
+                >
+                  Voir plus
+                </Link>
+              </div>
+              
+              {/* We'll pass the subcategory ID here to fetch specific listings */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <CategoryListings 
+                  categoryId={categoryId} 
+                  subcategoryId={subcategory.id}
+                  limit={4} 
+                />
+              </div>
             </div>
-            
-            {/* We'll pass the subcategory ID here to fetch specific listings */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <CategoryListings 
-                categoryId={categoryId} 
-                subcategoryId={subcategory.id}
-                limit={4} 
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

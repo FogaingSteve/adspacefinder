@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 
 export const Footer = () => {
@@ -31,10 +32,10 @@ export const Footer = () => {
           <div>
             <h3 className="font-bold text-lg mb-4">INFORMATIONS LÉGALES</h3>
             <ul className="space-y-2">
-              <li><Link to="/conditions" className="text-gray-300 hover:text-white">Conditions générales d'utilisation</Link></li>
-              <li><Link to="/privacy" className="text-gray-300 hover:text-white">Vie privée / cookies</Link></li>
-              <li><Link to="/rights" className="text-gray-300 hover:text-white">Vos droits et obligations</Link></li>
-              <li><Link to="/accessibility" className="text-gray-300 hover:text-white">Accessibilité</Link></li>
+              <li><Link to="/legal" className="text-gray-300 hover:text-white">Conditions générales d'utilisation</Link></li>
+              <li><Link to="/legal" className="text-gray-300 hover:text-white">Vie privée / cookies</Link></li>
+              <li><Link to="/legal" className="text-gray-300 hover:text-white">Vos droits et obligations</Link></li>
+              <li><Link to="/legal" className="text-gray-300 hover:text-white">Accessibilité</Link></li>
             </ul>
           </div>
           <div>
@@ -49,10 +50,10 @@ export const Footer = () => {
           <div>
             <h3 className="font-bold text-lg mb-4">DES QUESTIONS ?</h3>
             <ul className="space-y-2">
-              <li><Link to="/help" className="text-gray-300 hover:text-white">Aide</Link></li>
+              <li><Link to="/faq" className="text-gray-300 hover:text-white">Aide</Link></li>
               <li><Link to="/contact" className="text-gray-300 hover:text-white">Le paiement sécurisé et la livraison</Link></li>
-              <li><Link to="/wallet" className="text-gray-300 hover:text-white">Le porte-monnaie</Link></li>
-              <li><Link to="/booking" className="text-gray-300 hover:text-white">Le service de réservation de vacances</Link></li>
+              <li><Link to="/contact" className="text-gray-300 hover:text-white">Le porte-monnaie</Link></li>
+              <li><Link to="/contact" className="text-gray-300 hover:text-white">Le service de réservation de vacances</Link></li>
             </ul>
           </div>
         </div>
