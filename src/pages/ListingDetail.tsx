@@ -35,7 +35,7 @@ const ListingDetail = () => {
     isLoading, 
     error: listingError 
   } = useListingById(id || '', {
-    enabled: !!id,
+    enabled: !!id && id !== 'undefined' && id !== 'null',
     retry: 3,
     refetchOnWindowFocus: false,
     staleTime: 60000,
@@ -77,7 +77,7 @@ const ListingDetail = () => {
     
     try {
       const parsedDate = typeof date === 'string' ? new Date(date) : date;
-      return `il y a ${formatDistanceToNow(parsedDate, { locale: fr })}`;
+      return formatDistanceToNow(parsedDate, { locale: fr });
     } catch (error) {
       console.error("Error formatting date:", error);
       return "Date invalide";
@@ -90,12 +90,12 @@ const ListingDetail = () => {
     phone: undefined
   };
 
-  if (!id) {
+  if (!id || id === 'undefined' || id === 'null') {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert>
           <AlertDescription>
-            Aucun identifiant d'annonce n'a été fourni.
+            Aucun identifiant d'annonce valide n'a été fourni.
           </AlertDescription>
         </Alert>
       </div>

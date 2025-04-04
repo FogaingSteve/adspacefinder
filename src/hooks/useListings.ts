@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listingService } from "@/services/api";
 import { CreateListingDTO, Listing } from "@/types/listing";
@@ -59,6 +60,8 @@ export const useMarkListingAsSold = () => {
     mutationFn: (id: string) => listingService.markAsSold(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userListings'] });
+      queryClient.invalidateQueries({ queryKey: ['recentListings'] });
+      queryClient.invalidateQueries({ queryKey: ['listingById'] });
       toast.success("Annonce marquée comme vendue");
     },
     onError: (error: Error) => {

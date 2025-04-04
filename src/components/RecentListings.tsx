@@ -100,8 +100,8 @@ export const RecentListings = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {listings.map((listing) => (
           <Link
-            key={listing.id}
-            to={`/listings/${listing.id}`}
+            key={listing._id || listing.id}
+            to={`/listings/${listing._id || listing.id}`}
             className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
           >
             <div className="aspect-video relative overflow-hidden">
@@ -114,10 +114,10 @@ export const RecentListings = () => {
                 }}
               />
               <Button
-                onClick={(e) => handleToggleFavorite(e, listing.id!)}
+                onClick={(e) => handleToggleFavorite(e, listing._id || listing.id || '')}
                 variant="ghost"
                 size="icon"
-                disabled={processingFavorites[listing.id!]}
+                disabled={processingFavorites[listing._id || listing.id || '']}
                 className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full z-10"
               >
                 <Heart 

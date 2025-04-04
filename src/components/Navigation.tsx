@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Bell, Heart, MessageSquare, User, Plus, Settings, LayoutDashboard, LogOut } from "lucide-react";
@@ -22,14 +23,53 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCategories } from "@/data/topCategories";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 
 export const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const { user, signOut } = useAuth();
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, Record<string, number>>>({});
   
   // Fetch categories from MongoDB
   const { data: categories, isLoading: categoriesLoading } = useCategories();
+  
+  // Fetch subcategory counts
+  useEffect(() => {
+    if (categories) {
+      const fetchCounts = async () => {
+        const counts: Record<string, Record<string, number>> = {};
+        
+        try {
+          const allListings = await axios.get('http://localhost:5000/api/listings/recent');
+          
+          // Initialize counts
+          categories.forEach((category: any) => {
+            counts[category.id] = {};
+            category.subcategories.forEach((subcategory: any) => {
+              counts[category.id][subcategory.id] = 0;
+            });
+          });
+          
+          // Count listings per subcategory
+          allListings.data.forEach((listing: any) => {
+            if (listing.category && listing.subcategory && counts[listing.category]) {
+              if (counts[listing.category][listing.subcategory] !== undefined) {
+                counts[listing.category][listing.subcategory]++;
+              }
+            }
+          });
+          
+          setCategoryCounts(counts);
+        } catch (error) {
+          console.error("Error fetching listing counts:", error);
+        }
+      };
+      
+      fetchCounts();
+    }
+  }, [categories]);
 
   const handleLogout = async () => {
     await signOut();
@@ -168,19 +208,24 @@ export const Navigation = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  {category.subcategories.map((subcategory: any) => (
-                    <DropdownMenuItem key={subcategory.id} asChild>
-                      <Link 
-                        to={`/categories/${category.id}/${subcategory.id}`}
-                        className="flex items-center justify-between w-full"
-                      >
-                        {subcategory.name}
-                        <span className="text-xs text-gray-500">
-                          {subcategory.count || 0} annonces
-                        </span>
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
+                  {category.subcategories.map((subcategory: any) => {
+                    // Get count for this subcategory
+                    const count = categoryCounts[category.id]?.[subcategory.id] || 0;
+                    
+                    return (
+                      <DropdownMenuItem key={subcategory.id} asChild>
+                        <Link 
+                          to={`/categories/${category.id}/${subcategory.id}`}
+                          className="flex items-center justify-between w-full"
+                        >
+                          {subcategory.name}
+                          <span className="text-xs text-gray-500">
+                            {count} annonce{count !== 1 ? 's' : ''}
+                          </span>
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
                 </DropdownMenuContent>
               </DropdownMenu>
             ))
