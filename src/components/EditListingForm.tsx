@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -7,36 +8,36 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { CreateListingDTO, UpdateListingDTO } from "@/types/listing";
-import { useCreateListing, useUpdateListing } from "@/hooks/useListings";
+import { useUserListings, useDeleteListing, useMarkListingAsSold } from "@/hooks/useListings";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/ImageUpload";
+import axios from "axios";
 
-interface EditListingFormProps {
+export interface EditListingFormProps {
   listingId?: string;
-  defaultValues?: CreateListingDTO;
-  onSubmit: (data: CreateListingDTO) => void;
-  isLoading: boolean;
-  categories: any[];
-  onImageUpload: (images: File[]) => Promise<string[]>;
+  initialData?: CreateListingDTO;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
 export const EditListingForm: React.FC<EditListingFormProps> = ({
   listingId,
-  defaultValues,
-  onSubmit,
-  isLoading,
-  categories,
-  onImageUpload
+  initialData,
+  onSuccess,
+  onCancel
 }) => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  
   const {
     register,
     handleSubmit,
     setValue,
     formState: { errors },
   } = useForm<CreateListingDTO>({
-    defaultValues: defaultValues || {
+    defaultValues: initialData || {
       title: "",
       description: "",
       price: 0,
@@ -48,16 +49,67 @@ export const EditListingForm: React.FC<EditListingFormProps> = ({
   });
 
   useEffect(() => {
-    if (defaultValues) {
-      setValue("title", defaultValues.title);
-      setValue("description", defaultValues.description);
-      setValue("price", defaultValues.price);
-      setValue("category", defaultValues.category);
-      setValue("subcategory", defaultValues.subcategory);
-      setValue("location", defaultValues.location);
-      setValue("images", defaultValues.images);
+    // Fetch categories when component mounts
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/categories');
+        setCategories(response.data);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+        toast.error('Erreur lors du chargement des catégories');
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    if (initialData) {
+      setValue("title", initialData.title);
+      setValue("description", initialData.description);
+      setValue("price", initialData.price);
+      setValue("category", initialData.category);
+      setValue("subcategory", initialData.subcategory);
+      setValue("location", initialData.location);
+      setValue("images", initialData.images);
     }
-  }, [defaultValues, setValue]);
+  }, [initialData, setValue]);
+
+  const onSubmit = async (data: CreateListingDTO) => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (listingId) {
+        // Update existing listing
+        await axios.put(`http://localhost:5000/api/listings/${listingId}`, data, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        toast.success('Annonce mise à jour avec succès');
+      } else {
+        // Create new listing
+        await axios.post('http://localhost:5000/api/listings', data, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        toast.success('Annonce créée avec succès');
+      }
+      
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error saving listing:', error);
+      toast.error(listingId ? 'Erreur lors de la mise à jour' : 'Erreur lors de la création');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const categoryOptions = categories.map((category) => ({
     value: category.id,
@@ -66,18 +118,43 @@ export const EditListingForm: React.FC<EditListingFormProps> = ({
 
   const getSubcategoryOptions = (categoryId: string) => {
     const category = categories.find((cat) => cat.id === categoryId);
-    return category?.subcategories.map((subcategory: any) => ({
+    return category?.subcategories?.map((subcategory: any) => ({
       value: subcategory.id,
       label: subcategory.name,
     })) || [];
   };
 
-  const [selectedCategory, setSelectedCategory] = useState(defaultValues?.category || "");
+  const [selectedCategory, setSelectedCategory] = useState(initialData?.category || "");
   const subcategoryOptions = getSubcategoryOptions(selectedCategory);
 
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategory(categoryId);
     setValue("subcategory", "");
+  };
+
+  const handleImageUpload = async (images: File[]): Promise<string[]> => {
+    if (!images.length) return [];
+    
+    try {
+      const formData = new FormData();
+      images.forEach(image => {
+        formData.append('images', image);
+      });
+      
+      const token = localStorage.getItem('token');
+      const response = await axios.post('http://localhost:5000/api/listings/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      return response.data.imageUrls;
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      toast.error('Erreur lors du téléchargement des images');
+      return [];
+    }
   };
 
   return (
@@ -181,19 +258,29 @@ export const EditListingForm: React.FC<EditListingFormProps> = ({
 
       <div>
         <Label htmlFor="images">Images</Label>
-        <ImageUpload onImageUpload={onImageUpload} setValue={setValue} register={register} errors={errors} />
+        <ImageUpload 
+          onImageUpload={handleImageUpload} 
+          setValue={setValue} 
+          register={register} 
+          errors={errors} 
+        />
       </div>
 
-      <Button type="submit" disabled={isLoading}>
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Enregistrement...
-          </>
-        ) : (
-          "Enregistrer"
-        )}
-      </Button>
+      <div className="flex justify-between">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Annuler
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Enregistrement...
+            </>
+          ) : (
+            "Enregistrer"
+          )}
+        </Button>
+      </div>
     </form>
   );
 };
