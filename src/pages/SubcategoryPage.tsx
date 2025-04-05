@@ -19,8 +19,7 @@ const SubcategoryPage = () => {
       if (!categoryId || !subcategoryId) return null;
       return await categoryService.getSubcategory(categoryId, subcategoryId);
     },
-    enabled: !!categoryId && !!subcategoryId,
-    retry: 3
+    enabled: !!categoryId && !!subcategoryId
   });
 
   if (error) {
@@ -71,7 +70,9 @@ const SubcategoryPage = () => {
         </div>
       </div>
 
-      <SubcategoryListings categoryId={categoryId} subcategoryId={subcategoryId} />
+      {categoryId && subcategoryId && (
+        <SubcategoryListings categoryId={categoryId} subcategoryId={subcategoryId} />
+      )}
     </div>
   );
 };

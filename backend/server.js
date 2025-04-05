@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const Admin = require('./models/Admin');
 const path = require('path');
+const { initializeSupabaseTables } = require('./supabase');
 require('dotenv').config();
 
 const app = express();
@@ -47,6 +48,11 @@ const createDefaultAdmin = async () => {
 };
 
 createDefaultAdmin();
+
+// Initialize Supabase tables
+initializeSupabaseTables()
+  .then(() => console.log('Supabase initialization completed'))
+  .catch(err => console.error('Error initializing Supabase:', err));
 
 // Initialiser les routes
 app.use('/api/listings', listingsRoutes);

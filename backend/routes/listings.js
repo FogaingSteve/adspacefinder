@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const Listing = require('../models/Listing');
@@ -6,6 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const auth = require('../middleware/auth');
 const fs = require('fs');
+const { notifyNewListing } = require('../utils/notificationBridge');
 
 // Assurer que le répertoire uploads existe
 const uploadsDir = 'uploads';
@@ -172,7 +172,7 @@ router.get('/user/:userId', async (req, res) => {
   }
 });
 
-// Créer une nouvelle annonce (protégée)
+// Créer une nouvelle annonce (protégée) - With notification
 router.post('/', auth, async (req, res) => {
   try {
     console.log("Données reçues:", req.body);
@@ -187,6 +187,10 @@ router.post('/', auth, async (req, res) => {
 
     const savedListing = await listing.save();
     console.log("Annonce sauvegardée:", savedListing);
+    
+    // Send notification to Supabase for subscribers of this category
+    await notifyNewListing(savedListing);
+    
     res.status(201).json(savedListing);
   } catch (error) {
     console.error("Erreur création annonce:", error);

@@ -15,13 +15,13 @@ export const SubcategoryListings = ({ categoryId, subcategoryId }: { categoryId:
   const pageSize = 12;
 
   // Fetch listings for this subcategory
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, isPreviousData } = useQuery({
     queryKey: ['subcategory-listings', categoryId, subcategoryId, page],
     queryFn: async () => {
       const response = await axios.get(`/api/listings/category/${categoryId}/subcategory/${subcategoryId}`);
       return response.data;
     },
-    keepPreviousData: true
+    placeholderData: (previousData) => previousData
   });
 
   // Reset page when subcategory changes
