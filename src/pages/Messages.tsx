@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -39,7 +40,7 @@ const Messages = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [recipient, setRecipient] = useState<User | null>(null);
+  const [recipientUser, setRecipientUser] = useState<User | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Extract conversation ID from URL
@@ -182,9 +183,9 @@ const Messages = () => {
   }, [messages])
 
   useEffect(() => {
-    if (selectedConversation) {
+    if (selectedConversation && user?.id) {
       // Determine the recipient user
-      const recipientId = selectedConversation.user1_id === user?.id ? selectedConversation.user2_id : selectedConversation.user1_id;
+      const recipientId = selectedConversation.user1_id === user.id ? selectedConversation.user2_id : selectedConversation.user1_id;
 
       const fetchRecipient = async () => {
         try {
@@ -200,7 +201,7 @@ const Messages = () => {
             return;
           }
 
-          setRecipient(fetchedUser);
+          setRecipientUser(fetchedUser);
         } catch (error) {
           console.error('Unexpected error:', error);
           toast.error('Erreur inattendue.');
@@ -209,7 +210,7 @@ const Messages = () => {
 
       fetchRecipient();
     } else {
-      setRecipient(null);
+      setRecipientUser(null);
     }
   }, [selectedConversation, user?.id]);
 
@@ -222,7 +223,7 @@ const Messages = () => {
         .insert({
           conversation_id: selectedConversation.id,
           sender_id: user.id,
-          recipient_id: recipient?.id,
+          recipient_id: recipientUser?.id,
           content: newMessage.trim(),
           created_at: new Date().toISOString()
         });
@@ -299,7 +300,6 @@ const Messages = () => {
           <ScrollArea className="h-[calc(100vh - 150px)]">
             {conversations.map((conversation) => {
               const recipientId = conversation.user1_id === user?.id ? conversation.user2_id : conversation.user1_id;
-              const recipient = recipientId === recipient?.id ? recipient : null;
 
               return (
                 <div
@@ -307,13 +307,13 @@ const Messages = () => {
                   className={`p-2 rounded cursor-pointer ${selectedConversation?.id === conversation.id ? 'bg-gray-200' : 'hover:bg-gray-200'}`}
                   onClick={() => setSelectedConversation(conversation)}
                 >
-                  {recipient ? (
+                  {recipientUser && recipientId === recipientUser.id ? (
                     <div className="flex items-center gap-2">
                       <Avatar>
-                        <AvatarImage src={recipient?.user_metadata?.avatar_url || ""} />
-                        <AvatarFallback>{recipient?.user_metadata?.name?.slice(0, 2).toUpperCase() || recipient?.email?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                        <AvatarImage src={recipientUser?.user_metadata?.avatar_url || ""} />
+                        <AvatarFallback>{recipientUser?.user_metadata?.name?.slice(0, 2).toUpperCase() || recipientUser?.email?.slice(0, 2).toUpperCase()}</AvatarFallback>
                       </Avatar>
-                      <span>{recipient?.user_metadata?.name || recipient?.email}</span>
+                      <span>{recipientUser?.user_metadata?.name || recipientUser?.email}</span>
                     </div>
                   ) : (
                     <span>Chargement...</span>
@@ -332,10 +332,10 @@ const Messages = () => {
               <div className="bg-gray-50 border-b p-4">
                 <div className="flex items-center gap-2">
                   <Avatar>
-                    <AvatarImage src={recipient?.user_metadata?.avatar_url || ""} />
-                    <AvatarFallback>{recipient?.user_metadata?.name?.slice(0, 2).toUpperCase() || recipient?.email?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={recipientUser?.user_metadata?.avatar_url || ""} />
+                    <AvatarFallback>{recipientUser?.user_metadata?.name?.slice(0, 2).toUpperCase() || recipientUser?.email?.slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <h2 className="font-bold">{recipient?.user_metadata?.name || recipient?.email}</h2>
+                  <h2 className="font-bold">{recipientUser?.user_metadata?.name || recipientUser?.email}</h2>
                 </div>
               </div>
 

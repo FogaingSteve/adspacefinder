@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { SubcategoryListings } from "@/components/SubcategoryListings";
 import { useQuery } from "@tanstack/react-query";
