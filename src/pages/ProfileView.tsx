@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -7,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle, MapPin, CalendarDays, Store, User } from "lucide-react";
+import { MessageCircle, MapPin, CalendarDays, Store, User, Mail, Home, Calendar, Package } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserListings } from "@/hooks/useListings";
 import { formatDistanceToNow } from "date-fns";
@@ -20,18 +19,15 @@ const ProfileView = () => {
   const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("listings");
   
-  // Fetch profile info
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile', id],
     queryFn: async () => {
       if (!id) throw new Error("No profile ID");
       
       try {
-        // Try to fetch from backend API first
         const response = await axios.get(`http://localhost:5000/api/users/${id}`);
         return response.data;
       } catch (apiError) {
-        // If backend API fails, try Supabase
         try {
           const { data, error } = await supabase
             .from('profiles')
@@ -43,7 +39,6 @@ const ProfileView = () => {
           return data;
         } catch (supabaseError) {
           console.error("Error fetching profile:", supabaseError);
-          // Return minimal info
           return { id, name: "Utilisateur" };
         }
       }
@@ -51,7 +46,6 @@ const ProfileView = () => {
     enabled: !!id
   });
   
-  // Fetch user listings
   const { data: listings, isLoading: listingsLoading } = useUserListings(id || "");
   
   const formatDate = (dateString: string) => {
@@ -109,7 +103,6 @@ const ProfileView = () => {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Profile sidebar */}
         <div className="md:col-span-1">
           <Card>
             <CardContent className="pt-6">
@@ -129,7 +122,6 @@ const ProfileView = () => {
                 )}
               </div>
               
-              {/* Contact options */}
               {!isOwnProfile && (
                 <div className="space-y-2">
                   <Link to={`/messages`} state={{ sellerId: id }}>
@@ -141,7 +133,6 @@ const ProfileView = () => {
                 </div>
               )}
               
-              {/* Profile details */}
               <div className="mt-6 space-y-3">
                 <h3 className="font-semibold text-gray-700">Détails du profil</h3>
                 
@@ -159,6 +150,20 @@ const ProfileView = () => {
                   </div>
                 )}
                 
+                {profile.email && (
+                  <div className="flex items-start">
+                    <Mail className="h-4 w-4 mr-2 mt-0.5 text-gray-500" />
+                    <span>{profile.email}</span>
+                  </div>
+                )}
+                
+                {profile.home_address && (
+                  <div className="flex items-start">
+                    <Home className="h-4 w-4 mr-2 mt-0.5 text-gray-500" />
+                    <span>{profile.home_address}</span>
+                  </div>
+                )}
+                
                 {profile.bio && (
                   <div className="mt-4">
                     <h3 className="font-semibold text-gray-700 mb-2">À propos</h3>
@@ -170,7 +175,6 @@ const ProfileView = () => {
           </Card>
         </div>
         
-        {/* Main content */}
         <div className="md:col-span-3">
           <Tabs defaultValue="listings" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-6">

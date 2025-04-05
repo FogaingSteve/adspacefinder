@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { supabase } from "@/lib/supabase";
@@ -237,3 +236,40 @@ export const useFavoriteListings = (userId: string) => {
     enabled: !!userId
   });
 };
+
+// Create listing hook
+export const useCreateListing = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (listingData: any) => {
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/api/listings",
+          listingData,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`
+            }
+          }
+        );
+        return response.data;
+      } catch (error) {
+        console.error("Error creating listing:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: ["userListings"] });
+      queryClient.invalidateQueries({ queryKey: ["recentListings"] });
+      toast.success("Annonce créée avec succès");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erreur lors de la création de l'annonce");
+    }
+  });
+};
+
+// Alias for useFavoriteListings for backwards compatibility
+export const useFavorites = useFavoriteListings;

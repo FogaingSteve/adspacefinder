@@ -1,11 +1,10 @@
-
 import { useParams } from "react-router-dom";
 import { SubcategoryListings } from "@/components/SubcategoryListings";
 import { useQuery } from "@tanstack/react-query";
 import { categoryService } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { categoryIcons } from "@/data/topCategories";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { categoryIcons } from "@/data/topCategories";
 
 const SubcategoryPage = () => {
   const { categoryId, subcategoryId } = useParams<{ categoryId: string; subcategoryId: string }>();

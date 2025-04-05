@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,7 @@ import { useCategories } from "@/data/topCategories";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { NotificationDropdown } from "./NotificationDropdown";
 
 export const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -32,10 +32,8 @@ export const Navigation = () => {
   const { user, signOut } = useAuth();
   const [categoryCounts, setCategoryCounts] = useState<Record<string, Record<string, number>>>({});
   
-  // Fetch categories from MongoDB
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   
-  // Fetch subcategory counts
   useEffect(() => {
     if (categories) {
       const fetchCounts = async () => {
@@ -44,7 +42,6 @@ export const Navigation = () => {
         try {
           const allListings = await axios.get('http://localhost:5000/api/listings/recent');
           
-          // Initialize counts
           categories.forEach((category: any) => {
             counts[category.id] = {};
             category.subcategories.forEach((subcategory: any) => {
@@ -52,7 +49,6 @@ export const Navigation = () => {
             });
           });
           
-          // Count listings per subcategory
           allListings.data.forEach((listing: any) => {
             if (listing.category && listing.subcategory && counts[listing.category]) {
               if (counts[listing.category][listing.subcategory] !== undefined) {
@@ -80,7 +76,6 @@ export const Navigation = () => {
     <nav className="bg-white shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          {/* Logo and desktop navigation */}
           <div className="flex items-center space-x-8">
             <Link to="/" className="text-2xl font-bold text-[#FF6E14]">
               MonSite
@@ -108,7 +103,6 @@ export const Navigation = () => {
             </div>
           </div>
 
-          {/* Desktop icons */}
           <div className="hidden md:flex items-center space-x-6">
             <Link to="/listings/my-searches" className="flex flex-col items-center text-gray-600 hover:text-[#FF6E14]">
               <Bell className="h-6 w-6" />
@@ -166,9 +160,9 @@ export const Navigation = () => {
                 <span className="text-xs">Se connecter</span>
               </Link>
             )}
+            <NotificationDropdown />
           </div>
 
-          {/* Mobile menu button */}
           <div className="md:hidden">
             <Button
               variant="ghost"
@@ -184,15 +178,12 @@ export const Navigation = () => {
           </div>
         </div>
 
-        {/* Categories bar with dropdowns */}
         <div className="hidden md:flex items-center space-x-6 py-2 text-sm border-t overflow-x-auto">
           {categoriesLoading ? (
-            // Show loading skeletons while categories load
             Array(6).fill(0).map((_, i) => (
               <Skeleton key={i} className="h-6 w-24" />
             ))
           ) : (
-            // Show actual categories when loaded
             categories && categories.map((category: any) => (
               <DropdownMenu key={category._id}>
                 <DropdownMenuTrigger className="text-gray-600 hover:text-[#FF6E14] focus:outline-none">
@@ -209,7 +200,6 @@ export const Navigation = () => {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {category.subcategories.map((subcategory: any) => {
-                    // Get count for this subcategory
                     const count = categoryCounts[category.id]?.[subcategory.id] || 0;
                     
                     return (
@@ -232,7 +222,6 @@ export const Navigation = () => {
           )}
         </div>
 
-        {/* Mobile menu */}
         {isMenuOpen && (
           <div className="md:hidden py-4 space-y-4">
             <div className="flex flex-col space-y-4">
@@ -313,7 +302,6 @@ export const Navigation = () => {
         )}
       </div>
 
-      {/* Logout confirmation dialog */}
       <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

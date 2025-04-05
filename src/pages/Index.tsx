@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin } from "lucide-react";
@@ -62,7 +61,6 @@ const Index = () => {
     }
   });
 
-  // Parse price range to min and max values
   const parsePriceRange = (range: string) => {
     if (range === "Tous les prix" || !range) {
       return { min: 0, max: 0 }; // 0 means no limit
@@ -81,7 +79,6 @@ const Index = () => {
     return { min, max };
   };
 
-  // Apply filters when the search button is clicked
   const applyFilters = () => {
     if (!searchQuery.trim() && !selectedCategory && !selectedCity && !priceRange) {
       toast.error("Veuillez sélectionner au moins un critère de recherche");
@@ -97,7 +94,6 @@ const Index = () => {
       priceMax
     });
     
-    // Construct query parameters for URL
     const queryParams = new URLSearchParams();
     
     if (searchQuery) queryParams.set('q', searchQuery);
@@ -106,7 +102,6 @@ const Index = () => {
     if (priceMin > 0) queryParams.set('priceMin', priceMin.toString());
     if (priceMax > 0) queryParams.set('priceMax', priceMax.toString());
     
-    // Navigate to search results page with filters
     if (queryParams.toString()) {
       navigate(`/search?${queryParams.toString()}`);
     } else {
@@ -114,7 +109,6 @@ const Index = () => {
     }
   };
 
-  // Make search query when enter key is pressed
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       applyFilters();

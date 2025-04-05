@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -8,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
-  CaretLeft, Share, Heart, MapPin, Phone, Calendar, Tag, 
-  MessageCircle, Store, User, Mail
+  ArrowLeft, Heart, MessageCircle, Phone, Share, 
+  MapPin, Calendar, Tag, Store, User, Mail
 } from "lucide-react";
 import {
   Carousel,
@@ -40,18 +39,15 @@ const ListingDetail = () => {
     }
   });
   
-  // Fetch seller info
   const { data: seller } = useQuery({
     queryKey: ['user', listing?.userId],
     queryFn: async () => {
       if (!listing?.userId) throw new Error("No seller ID");
       
       try {
-        // Attempt to fetch from your custom API first
         const response = await axios.get(`http://localhost:5000/api/users/${listing.userId}`);
         return response.data;
       } catch (apiError) {
-        // If custom API fails, try Supabase as fallback
         try {
           const { data, error } = await supabase
             .from('profiles')
@@ -63,7 +59,6 @@ const ListingDetail = () => {
           return data;
         } catch (supabaseError) {
           console.error("Error fetching seller info:", supabaseError);
-          // Return minimal information if available
           return { 
             id: listing.userId,
             name: listing.userName || "Vendeur anonyme"
@@ -111,7 +106,6 @@ const ListingDetail = () => {
     }
   };
   
-  // Check if the listing is in the user's favorites
   const isFavorite = () => {
     if (!user || !listing?.favorites) return false;
     return listing.favorites.includes(user.id);
@@ -151,7 +145,7 @@ const ListingDetail = () => {
           </p>
           <Link to="/">
             <Button>
-              <CaretLeft className="mr-2 h-4 w-4" />
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Retourner à l'accueil
             </Button>
           </Link>
@@ -164,7 +158,7 @@ const ListingDetail = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="mb-6 flex items-center">
         <Link to="/" className="text-gray-500 hover:text-gray-700 mr-4">
-          <CaretLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="text-sm breadcrumbs text-gray-500">
           <span>Accueil</span>
@@ -183,7 +177,6 @@ const ListingDetail = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-2">
-          {/* Images carousel */}
           <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
             {listing.images && listing.images.length > 0 ? (
               <Carousel className="w-full">
@@ -213,7 +206,6 @@ const ListingDetail = () => {
             )}
           </div>
           
-          {/* Title and description */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex justify-between items-start mb-4">
               <div>
@@ -285,7 +277,6 @@ const ListingDetail = () => {
         </div>
         
         <div>
-          {/* Seller info card */}
           <Card className="mb-6">
             <CardContent className="pt-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -300,7 +291,6 @@ const ListingDetail = () => {
                     <span>{seller.name || seller.full_name || "Nom non spécifié"}</span>
                   </div>
                   
-                  {/* Link to seller profile instead of showing info directly */}
                   <Link 
                     to={`/profile/${seller.id}`}
                     className="block w-full"
@@ -329,7 +319,6 @@ const ListingDetail = () => {
             </CardContent>
           </Card>
           
-          {/* Safety tips */}
           <Card>
             <CardContent className="pt-6">
               <h3 className="text-lg font-semibold mb-4">Conseils de sécurité</h3>
