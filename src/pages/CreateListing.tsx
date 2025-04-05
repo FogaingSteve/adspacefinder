@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -238,7 +237,7 @@ const CreateListing = () => {
                         <SelectItem value="loading" disabled>Chargement...</SelectItem>
                       ) : categories && categories.length > 0 ? (
                         categories.map((category: any) => (
-                          <SelectItem key={category.slug} value={category.slug}>
+                          <SelectItem key={category.slug || category._id} value={category.slug || category._id}>
                             {category.name}
                           </SelectItem>
                         ))
@@ -269,7 +268,7 @@ const CreateListing = () => {
                         <SelectItem value="no-category" disabled>Sélectionnez d'abord une catégorie</SelectItem>
                       ) : subcategories.length > 0 ? (
                         subcategories.map((subcategory: any) => (
-                          <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                          <SelectItem key={subcategory.slug || subcategory._id} value={subcategory.slug || subcategory._id}>
                             {subcategory.name}
                           </SelectItem>
                         ))

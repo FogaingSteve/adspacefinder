@@ -1,39 +1,44 @@
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import { listingService } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
+import { MapPin } from "lucide-react";
 
-export const SubcategoryListings = ({ categoryId, subcategoryId }: { categoryId: string, subcategoryId: string }) => {
-  const [page, setPage] = useState(1);
-  const pageSize = 12;
+export interface SubcategoryListingsProps {
+  categoryId: string;
+  subcategoryId: string;
+}
 
-  // Fetch listings for this subcategory
-  const { data, isLoading, error, isPreviousData } = useQuery({
-    queryKey: ['subcategory-listings', categoryId, subcategoryId, page],
-    queryFn: async () => {
-      const response = await axios.get(`/api/listings/category/${categoryId}/subcategory/${subcategoryId}`);
-      return response.data;
-    },
-    placeholderData: (previousData) => previousData
+export const SubcategoryListings = ({ categoryId, subcategoryId }: SubcategoryListingsProps) => {
+  const navigate = useNavigate();
+  
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['listings', categoryId, subcategoryId],
+    queryFn: () => listingService.getListingsBySubcategory(categoryId, subcategoryId),
+    placeholderData: keepPlaceholderData,
   });
+  
+  const keepPlaceholderData = (previousData: any) => previousData;
 
-  // Reset page when subcategory changes
-  useEffect(() => {
-    setPage(1);
-  }, [categoryId, subcategoryId]);
+  const formatRelativeDate = (dateString: string | Date) => {
+    try {
+      const date = new Date(dateString);
+      return formatDistanceToNow(date, { addSuffix: true, locale: fr });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Date inconnue";
+    }
+  };
 
   if (error) {
     return (
       <Alert>
         <AlertDescription>
-          Error loading listings: {(error as Error).message}
+          Une erreur est survenue lors du chargement des annonces.
         </AlertDescription>
       </Alert>
     );
@@ -42,103 +47,57 @@ export const SubcategoryListings = ({ categoryId, subcategoryId }: { categoryId:
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {Array(8).fill(0).map((_, i) => (
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
           <Skeleton key={i} className="h-64 w-full rounded-lg" />
         ))}
       </div>
     );
   }
 
-  // Paginate listings
-  const paginatedListings = data?.slice((page - 1) * pageSize, page * pageSize) || [];
-  const totalPages = Math.ceil((data?.length || 0) / pageSize);
-
-  if (paginatedListings.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Aucune annonce trouvée dans cette sous-catégorie.</p>
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {paginatedListings.map((listing: any) => (
-          <Link key={listing._id} to={`/listings/${listing._id}`}>
-            <Card className="h-full hover:shadow-md transition-shadow overflow-hidden">
-              <div className="relative h-48 w-full overflow-hidden bg-gray-100">
-                {listing.images && listing.images.length > 0 ? (
-                  <img 
-                    src={listing.images[0]} 
-                    alt={listing.title} 
-                    className="h-full w-full object-cover transition-transform hover:scale-105"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full bg-gray-200 text-gray-500">
-                    Pas d'image
-                  </div>
-                )}
-                {listing.isSold && (
-                  <Badge variant="destructive" className="absolute top-2 right-2">
-                    Vendu
-                  </Badge>
-                )}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {data && data.length > 0 ? (
+        data.map((listing: any) => (
+          <div
+            key={listing._id}
+            className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer"
+            onClick={() => navigate(`/listings/${listing._id}`)}
+          >
+            <div className="aspect-video relative overflow-hidden">
+              <img
+                src={listing.images && listing.images[0] ? listing.images[0] : "https://via.placeholder.com/400x300?text=Pas+d'image"}
+                alt={listing.title}
+                className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x300?text=Image+non+disponible";
+                }}
+              />
+              <div className="absolute top-2 left-2 bg-white/80 rounded px-2 py-1 text-sm">
+                {formatRelativeDate(listing.createdAt || "")}
               </div>
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-lg line-clamp-1">{listing.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 pb-2">
-                <p className="font-bold text-lg">{listing.price.toLocaleString()} FCFA</p>
-                <p className="text-gray-500 text-sm line-clamp-2">{listing.description}</p>
-              </CardContent>
-              <CardFooter className="p-4 pt-0 flex items-center justify-between">
-                <div className="text-sm text-gray-500">
-                  {new Date(listing.createdAt).toLocaleDateString()}
+              {listing.isSold && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="bg-red-500 text-white px-4 py-2 rounded-full font-semibold transform -rotate-12">
+                    Vendu
+                  </div>
                 </div>
-                <Button size="sm" variant="ghost" className="gap-1">
-                  Voir <ExternalLink className="h-3 w-3" />
-                </Button>
-              </CardFooter>
-            </Card>
-          </Link>
-        ))}
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center mt-8">
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              Précédent
-            </Button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                <Button
-                  key={p}
-                  variant={p === page ? "default" : "outline"}
-                  size="sm"
-                  className="w-8 h-8 p-0"
-                  onClick={() => setPage(p)}
-                >
-                  {p}
-                </Button>
-              ))}
+              )}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-            >
-              Suivant
-            </Button>
+            <div className="p-4">
+              <h3 className="font-medium text-lg text-gray-900 group-hover:text-primary line-clamp-1">
+                {listing.title}
+              </h3>
+              <p className="text-primary font-bold mt-2">{listing.price.toLocaleString()} €</p>
+              <div className="flex items-center gap-1 mt-2 text-gray-500 text-sm">
+                <MapPin className="h-4 w-4" />
+                <span>{listing.location}</span>
+              </div>
+            </div>
           </div>
+        ))
+      ) : (
+        <div className="col-span-full text-center py-10">
+          <p className="text-gray-500">Aucune annonce trouvée dans cette catégorie</p>
         </div>
       )}
     </div>

@@ -156,12 +156,12 @@ const Index = () => {
                   <SelectValue placeholder="Catégorie" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toutes les catégories</SelectItem>
+                  <SelectItem value="all">Toutes les catégories</SelectItem>
                   {categoriesLoading ? (
                     <SelectItem value="loading" disabled>Chargement...</SelectItem>
                   ) : (
                     categories?.map((cat: any) => (
-                      <SelectItem key={cat._id} value={cat.id}>
+                      <SelectItem key={cat._id} value={cat.id || cat._id}>
                         {cat.name}
                       </SelectItem>
                     ))
@@ -173,7 +173,7 @@ const Index = () => {
                   <SelectValue placeholder="Ville" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toutes les villes</SelectItem>
+                  <SelectItem value="all">Toutes les villes</SelectItem>
                   {(citiesData || ["Yaoundé", "Douala", "Bafoussam", "Garoua", "Bamenda", "Kribi"]).map((city: string) => (
                     <SelectItem key={city} value={city}>
                       {city}
@@ -260,7 +260,7 @@ const Index = () => {
               return (
                 <Link
                   key={category._id}
-                  to={`/categories/${category.id}`}
+                  to={`/categories/${category.id || category._id}`}
                   className="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
                 >
                   {Icon && <Icon className="h-8 w-8 mb-2 text-primary" />}
