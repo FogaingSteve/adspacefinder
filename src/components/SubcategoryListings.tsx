@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { listingService } from "@/services/api";
+import axios from "axios";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
@@ -18,11 +18,12 @@ export const SubcategoryListings = ({ categoryId, subcategoryId }: SubcategoryLi
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['listings', categoryId, subcategoryId],
-    queryFn: () => listingService.getListingsBySubcategory(categoryId, subcategoryId),
-    placeholderData: keepPlaceholderData,
+    queryFn: async () => {
+      const response = await axios.get(`http://localhost:5000/api/listings/category/${categoryId}/subcategory/${subcategoryId}`);
+      return response.data;
+    },
+    placeholderData: (previousData) => previousData,
   });
-  
-  const keepPlaceholderData = (previousData: any) => previousData;
 
   const formatRelativeDate = (dateString: string | Date) => {
     try {
