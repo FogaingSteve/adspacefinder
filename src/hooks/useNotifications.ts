@@ -39,7 +39,10 @@ export const useNotifications = () => {
           .order('created_at', { ascending: false })
           .limit(50);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching notifications:', error);
+          return;
+        }
 
         setNotifications(data as Notification[]);
         setUnreadCount(data.filter((n: Notification) => !n.read).length);
@@ -156,7 +159,6 @@ export const createNotification = async (
       message,
       type,
       read: false,
-      created_at: new Date().toISOString(),
       metadata
     });
 

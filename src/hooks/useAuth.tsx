@@ -92,17 +92,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error, data } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
       })
+      
       if (error) throw error
-      toast.success('Vérifiez votre email pour confirmer votre inscription')
+      
+      if (data.user) {
+        // Créer une entrée dans la table profiles pour le nouvel utilisateur
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+        
+        if (profileError) {
+          console.error('Erreur lors de la création du profil:', profileError)
+          // Continuer malgré l'erreur pour ne pas bloquer l'inscription
+        }
+      }
+      
+      toast.success('Compte créé avec succès')
+      navigate('/auth/signin')
     } catch (error: any) {
-      toast.error(error.message)
+      toast.error(error.message || "Erreur lors de l'inscription")
     }
   }
 

@@ -1,24 +1,17 @@
 
-import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
-import { format, isSameDay } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send } from "lucide-react"
-
-interface User {
-  id: string;
-  email: string;
-  user_metadata?: {
-    name?: string;
-    avatar_url?: string;
-  };
-}
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocation, Link } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { MessageForm } from "@/components/MessageForm";
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/lib/supabase";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Message {
   id: string;
@@ -26,384 +19,432 @@ interface Message {
   recipient_id: string;
   content: string;
   created_at: string;
+  read: boolean;
 }
 
 interface Conversation {
   id: string;
   user1_id: string;
   user2_id: string;
+  last_message_time: string;
+  otherUser: {
+    id: string;
+    email?: string;
+    full_name?: string;
+    avatar_url?: string;
+    last_seen?: string;
+    is_online?: boolean;
+  };
+  lastMessage?: {
+    content: string;
+    created_at: string;
+  };
 }
 
-const Messages = () => {
+export default function Messages() {
   const { user } = useAuth();
+  const location = useLocation();
+  const { isUserOnline } = useOnlineStatus();
+  
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [recipientUser, setRecipientUser] = useState<User | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Extract conversation ID from URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const conversationIdFromUrl = urlParams.get('conversation');
-
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [otherUser, setOtherUser] = useState<any>(null);
+  
+  // Extract conversationId from URL query parameters
   useEffect(() => {
-    if (conversationIdFromUrl) {
-      // Fetch the conversation from the URL
-      const fetchConversationFromUrl = async () => {
-        try {
-          const { data: conversation, error } = await supabase
-            .from('conversations')
-            .select('*')
-            .eq('id', conversationIdFromUrl)
-            .single();
-
-          if (error) {
-            console.error('Error fetching conversation:', error);
-            toast.error('Erreur lors du chargement de la conversation.');
-            return;
-          }
-
-          if (conversation) {
-            setSelectedConversation(conversation);
-          }
-        } catch (error) {
-          console.error('Unexpected error:', error);
-          toast.error('Erreur inattendue.');
-        }
-      };
-
-      fetchConversationFromUrl();
+    const params = new URLSearchParams(location.search);
+    const conversationId = params.get('conversation');
+    
+    if (conversationId) {
+      setSelectedConversation(conversationId);
     }
-  }, [conversationIdFromUrl]);
-
+    
+    // If there's a sellerId in the state, prepare to start a new conversation
+    if (location.state?.sellerId) {
+      loadUserData(location.state.sellerId);
+    }
+  }, [location]);
+  
+  // Fetch conversations
   useEffect(() => {
     if (!user?.id) return;
-
-    // Fetch conversations for the current user
+    
     const fetchConversations = async () => {
+      setIsLoadingConversations(true);
       try {
-        const { data, error } = await supabase
+        // Fetch conversations
+        const { data: conversationsData, error } = await supabase
           .from('conversations')
           .select('*')
           .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching conversations:', error);
-          toast.error('Erreur lors du chargement des conversations.');
+          .order('last_message_time', { ascending: false });
+          
+        if (error) throw error;
+        
+        if (!conversationsData || conversationsData.length === 0) {
+          setIsLoadingConversations(false);
           return;
         }
-
-        setConversations(data);
-
-        // If a conversation ID is in the URL, select it
-        if (conversationIdFromUrl) {
-          const initialConversation = data.find(c => c.id === conversationIdFromUrl);
-          if (initialConversation) {
-            setSelectedConversation(initialConversation);
-          }
-        } else if (data.length > 0 && !selectedConversation) {
-          // Select the first conversation if none is selected
-          setSelectedConversation(data[0]);
+        
+        // Process each conversation to get the other user's details
+        const processedConversations = await Promise.all(
+          conversationsData.map(async (conv) => {
+            const otherUserId = conv.user1_id === user.id ? conv.user2_id : conv.user1_id;
+            
+            // Get other user details
+            let otherUserData;
+            const { data: userData, error: userError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', otherUserId)
+              .single();
+            
+            if (userError) {
+              console.error('Error fetching user data:', userError);
+              otherUserData = { id: otherUserId };
+            } else {
+              otherUserData = userData;
+            }
+            
+            // Get last message in conversation
+            const { data: lastMessageData, error: messageError } = await supabase
+              .from('messages')
+              .select('content, created_at')
+              .eq('conversation_id', conv.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
+            
+            if (messageError && messageError.code !== 'PGRST116') {
+              console.error('Error fetching last message:', messageError);
+            }
+            
+            return {
+              ...conv,
+              otherUser: otherUserData,
+              lastMessage: lastMessageData
+            };
+          })
+        );
+        
+        setConversations(processedConversations);
+        
+        // If no conversation is selected yet and we have conversations,
+        // select the first one
+        if (!selectedConversation && processedConversations.length > 0) {
+          setSelectedConversation(processedConversations[0].id);
         }
       } catch (error) {
-        console.error('Unexpected error:', error);
-        toast.error('Erreur inattendue.');
+        console.error('Error fetching conversations:', error);
+      } finally {
+        setIsLoadingConversations(false);
       }
     };
-
+    
     fetchConversations();
-
-    // Subscribe to conversation changes
-    const conversationSubscription = supabase
+    
+    // Subscribe to new conversations
+    const channel = supabase
       .channel('public:conversations')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' },
-        payload => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
-            fetchConversations();
-          }
-        })
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'conversations', filter: `user1_id=eq.${user.id}` },
+        () => fetchConversations()
+      )
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'conversations', filter: `user2_id=eq.${user.id}` },
+        () => fetchConversations()
+      )
       .subscribe();
-
+      
     return () => {
-      supabase.removeChannel(conversationSubscription);
+      supabase.removeChannel(channel);
     };
-  }, [user?.id, conversationIdFromUrl, selectedConversation]);
-
+  }, [user?.id]);
+  
+  // Fetch messages for selected conversation
   useEffect(() => {
-    if (selectedConversation) {
-      // Fetch messages for the selected conversation
-      const fetchMessages = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('messages')
+    if (!selectedConversation || !user?.id) return;
+    
+    const fetchMessages = async () => {
+      setIsLoadingMessages(true);
+      try {
+        // Find the current conversation
+        const currentConv = conversations.find(c => c.id === selectedConversation);
+        if (currentConv) {
+          setOtherUser(currentConv.otherUser);
+        } else {
+          // If we can't find it in our list (new conversation), fetch it
+          const { data: convData, error: convError } = await supabase
+            .from('conversations')
             .select('*')
-            .eq('conversation_id', selectedConversation.id)
-            .order('created_at', { ascending: true });
-
-          if (error) {
-            console.error('Error fetching messages:', error);
-            toast.error('Erreur lors du chargement des messages.');
-            return;
-          }
-
-          setMessages(data);
-        } catch (error) {
-          console.error('Unexpected error:', error);
-          toast.error('Erreur inattendue.');
-        }
-      };
-
-      fetchMessages();
-
-      // Subscribe to message changes
-      const messageSubscription = supabase
-        .channel(`public:messages:conversation_id=eq.${selectedConversation.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' },
-          payload => {
-            if (payload.eventType === 'INSERT') {
-              // Optimistically add the new message to the state
-              setMessages(prevMessages => [...prevMessages, payload.new as Message]);
-            }
-          })
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(messageSubscription);
-      };
-    } else {
-      setMessages([]);
-    }
-  }, [selectedConversation]);
-
-  useEffect(() => {
-    // Scroll to the bottom when messages change
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
-
-  useEffect(() => {
-    if (selectedConversation && user?.id) {
-      // Determine the recipient user
-      const recipientId = selectedConversation.user1_id === user.id ? selectedConversation.user2_id : selectedConversation.user1_id;
-
-      const fetchRecipient = async () => {
-        try {
-          const { data: fetchedUser, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', recipientId)
+            .eq('id', selectedConversation)
             .single();
-
-          if (error) {
-            console.error('Error fetching recipient:', error);
-            toast.error('Erreur lors du chargement du destinataire.');
-            return;
-          }
-
-          setRecipientUser(fetchedUser);
-        } catch (error) {
-          console.error('Unexpected error:', error);
-          toast.error('Erreur inattendue.');
+            
+          if (convError) throw convError;
+          
+          const otherUserId = convData.user1_id === user.id ? convData.user2_id : convData.user1_id;
+          await loadUserData(otherUserId);
         }
-      };
-
-      fetchRecipient();
-    } else {
-      setRecipientUser(null);
-    }
-  }, [selectedConversation, user?.id]);
-
-  const sendMessage = async () => {
-    if (!user?.id || !selectedConversation?.id || !newMessage.trim()) return;
-
+        
+        // Fetch messages
+        const { data: messagesData, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', selectedConversation)
+          .order('created_at', { ascending: true });
+          
+        if (error) throw error;
+        
+        setMessages(messagesData);
+        
+        // Mark messages as read
+        const { error: updateError } = await supabase
+          .from('messages')
+          .update({ read: true })
+          .eq('conversation_id', selectedConversation)
+          .eq('recipient_id', user.id)
+          .eq('read', false);
+          
+        if (updateError) {
+          console.error('Error marking messages as read:', updateError);
+        }
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      } finally {
+        setIsLoadingMessages(false);
+      }
+    };
+    
+    fetchMessages();
+    
+    // Subscribe to new messages
+    const channel = supabase
+      .channel(`messages:${selectedConversation}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${selectedConversation}`
+      }, () => fetchMessages())
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedConversation, user?.id, conversations]);
+  
+  const loadUserData = async (userId: string) => {
     try {
-      const { error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: selectedConversation.id,
-          sender_id: user.id,
-          recipient_id: recipientUser?.id,
-          content: newMessage.trim(),
-          created_at: new Date().toISOString()
-        });
-
-      if (error) {
-        console.error('Error sending message:', error);
-        toast.error('Erreur lors de l\'envoi du message.');
-        return;
-      }
-
-      setNewMessage('');
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast.error('Erreur inattendue.');
-    }
-  };
-
-  const createConversation = async (otherUserId: string) => {
-    if (!user?.id) return;
-
-    try {
-      // Check if a conversation already exists
-      const { data: existingConversation, error: existingError } = await supabase
-        .from('conversations')
-        .select('*')
-        .or(`and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`)
-        .single();
-
-      if (existingError) {
-        console.error('Error checking existing conversation:', existingError);
-        toast.error('Erreur lors de la vérification de la conversation existante.');
-        return;
-      }
-
-      if (existingConversation) {
-        // Select the existing conversation
-        setSelectedConversation(existingConversation);
-        return;
-      }
-
-      // Create a new conversation
       const { data, error } = await supabase
-        .from('conversations')
-        .insert({
-          user1_id: user.id,
-          user2_id: otherUserId,
-          created_at: new Date().toISOString()
-        })
+        .from('profiles')
         .select('*')
+        .eq('id', userId)
         .single();
-
-      if (error) {
-        console.error('Error creating conversation:', error);
-        toast.error('Erreur lors de la création de la conversation.');
-        return;
-      }
-
-      // Add the new conversation to the state
-      setConversations(prevConversations => [...prevConversations, data]);
-      // Select the new conversation
-      setSelectedConversation(data);
+        
+      if (error) throw error;
+      setOtherUser(data);
     } catch (error) {
-      console.error('Unexpected error:', error);
-      toast.error('Erreur inattendue.');
+      console.error('Error loading user data:', error);
+      setOtherUser({ id: userId });
     }
   };
-
+  
+  const formatMessageDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, 'Pp', { locale: fr });
+    } catch (e) {
+      return dateString;
+    }
+  };
+  
+  const handleMessageSent = (conversationId: string) => {
+    setSelectedConversation(conversationId);
+    
+    // Add URL parameter for the conversation
+    const url = new URL(window.location.href);
+    url.searchParams.set('conversation', conversationId);
+    window.history.pushState({}, '', url.toString());
+  };
+  
+  if (!user) {
+    return (
+      <div className="container mx-auto py-8">
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center space-y-4">
+              <h2 className="text-xl font-semibold">Vous devez être connecté pour voir vos messages</h2>
+              <Button asChild>
+                <Link to="/auth/signin">Se connecter</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
   return (
-    <div className="container mx-auto py-8 h-screen">
-      <div className="flex h-full">
-        {/* Conversation List */}
-        <div className="w-1/4 bg-gray-100 border-r p-4">
-          <h2 className="font-bold mb-4">Conversations</h2>
-          <ScrollArea className="h-[calc(100vh - 150px)]">
-            {conversations.map((conversation) => {
-              const recipientId = conversation.user1_id === user?.id ? conversation.user2_id : conversation.user1_id;
-
-              return (
-                <div
-                  key={conversation.id}
-                  className={`p-2 rounded cursor-pointer ${selectedConversation?.id === conversation.id ? 'bg-gray-200' : 'hover:bg-gray-200'}`}
-                  onClick={() => setSelectedConversation(conversation)}
-                >
-                  {recipientUser && recipientId === recipientUser.id ? (
-                    <div className="flex items-center gap-2">
-                      <Avatar>
-                        <AvatarImage src={recipientUser?.user_metadata?.avatar_url || ""} />
-                        <AvatarFallback>{recipientUser?.user_metadata?.name?.slice(0, 2).toUpperCase() || recipientUser?.email?.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <span>{recipientUser?.user_metadata?.name || recipientUser?.email}</span>
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-6">Messages</h1>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Conversations list */}
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle>Conversations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingConversations ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center space-x-4">
+                      <Skeleton className="h-12 w-12 rounded-full" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-[150px]" />
+                        <Skeleton className="h-3 w-[100px]" />
+                      </div>
                     </div>
-                  ) : (
-                    <span>Chargement...</span>
-                  )}
+                  ))}
                 </div>
-              );
-            })}
-          </ScrollArea>
-        </div>
-
-        {/* Message Area */}
-        <div className="flex-1 flex flex-col">
-          {selectedConversation ? (
-            <>
-              {/* Chat Header */}
-              <div className="bg-gray-50 border-b p-4">
-                <div className="flex items-center gap-2">
-                  <Avatar>
-                    <AvatarImage src={recipientUser?.user_metadata?.avatar_url || ""} />
-                    <AvatarFallback>{recipientUser?.user_metadata?.name?.slice(0, 2).toUpperCase() || recipientUser?.email?.slice(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <h2 className="font-bold">{recipientUser?.user_metadata?.name || recipientUser?.email}</h2>
+              ) : conversations.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  Aucune conversation
                 </div>
-              </div>
-
-              {/* Message List */}
-              <div className="flex-1 p-4 overflow-y-scroll">
-                <ScrollArea className="h-[calc(100vh - 250px)]">
-                  {messages.map((message, index) => {
-                    const isCurrentUser = message.sender_id === user?.id;
-                    const messageDate = new Date(message.created_at);
-                    const showDateHeader = index === 0 || !isSameDay(new Date(messages[index - 1].created_at), messageDate);
-
-                    return (
-                      <div key={message.id}>
-                        {showDateHeader && (
-                          <div className="text-center text-gray-500 my-2">
-                            {format(messageDate, 'PPP', { locale: fr })}
+              ) : (
+                <div className="space-y-2">
+                  {conversations.map((conversation) => (
+                    <div
+                      key={conversation.id}
+                      className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                        selectedConversation === conversation.id
+                          ? "bg-primary/10"
+                          : "hover:bg-gray-100"
+                      }`}
+                      onClick={() => setSelectedConversation(conversation.id)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Avatar>
+                          <AvatarImage src={conversation.otherUser?.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {(conversation.otherUser?.full_name || conversation.otherUser?.email || "?").charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center">
+                            <p className="font-medium truncate flex-1">
+                              {conversation.otherUser?.full_name || conversation.otherUser?.email || "Utilisateur"}
+                            </p>
+                            {isUserOnline(conversation.otherUser.id) && (
+                              <div className="h-2.5 w-2.5 rounded-full bg-green-500 ml-2"></div>
+                            )}
                           </div>
-                        )}
-                        <div className={`mb-2 flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-                          <div className={`px-3 py-2 rounded-lg ${isCurrentUser ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}`}>
-                            {message.content}
+                          {conversation.lastMessage && (
+                            <div className="text-sm text-gray-500 truncate">
+                              {conversation.lastMessage.content}
+                            </div>
+                          )}
+                          <div className="text-xs text-gray-400">
+                            {conversation.last_message_time ? 
+                              formatMessageDate(conversation.last_message_time) : 
+                              "Nouvelle conversation"}
                           </div>
-                          <span className="text-xs text-gray-500 mt-1">
-                            {format(new Date(message.created_at), 'HH:mm', { locale: fr })}
-                          </span>
                         </div>
                       </div>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
-                </ScrollArea>
-              </div>
-
-              {/* Message Input */}
-              <div className="p-4 border-t">
-                <div className="flex items-center">
-                  <Input
-                    type="text"
-                    placeholder="Écrire un message..."
-                    className="flex-1 rounded-l-md"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        sendMessage();
-                      }
-                    }}
-                  />
-                  <Button
-                    className="rounded-l-none"
-                    onClick={sendMessage}
-                    disabled={!newMessage.trim()}
-                  >
-                    Envoyer
-                    <Send className="ml-2 h-4 w-4" />
-                  </Button>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <span className="text-gray-500">Sélectionnez une conversation pour afficher les messages.</span>
-            </div>
-          )}
+              )}
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Messages */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {otherUser ? (
+                  <div className="flex items-center">
+                    <Avatar className="mr-2">
+                      <AvatarImage src={otherUser?.avatar_url || undefined} />
+                      <AvatarFallback>
+                        {(otherUser?.full_name || otherUser?.email || "?").charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>
+                      {otherUser.full_name || otherUser.email || "Utilisateur"}
+                      {isUserOnline(otherUser.id) && (
+                        <span className="ml-2 inline-block h-2.5 w-2.5 rounded-full bg-green-500"></span>
+                      )}
+                    </span>
+                  </div>
+                ) : location.state?.sellerId ? (
+                  "Nouvelle conversation"
+                ) : (
+                  "Sélectionnez une conversation"
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingMessages ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex flex-col space-y-2">
+                      <Skeleton className="h-4 w-[200px]" />
+                      <Skeleton className="h-20 w-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : selectedConversation || location.state?.sellerId ? (
+                <div>
+                  {messages.length > 0 ? (
+                    <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto">
+                      {messages.map((msg) => (
+                        <div
+                          key={msg.id}
+                          className={`p-3 rounded-lg ${
+                            msg.sender_id === user.id
+                              ? "bg-primary/10 ml-auto"
+                              : "bg-gray-100"
+                          } max-w-[80%] ${
+                            msg.sender_id === user.id ? "ml-auto" : "mr-auto"
+                          }`}
+                        >
+                          <p>{msg.content}</p>
+                          <p className="text-xs text-gray-500 mt-1 text-right">
+                            {formatMessageDate(msg.created_at)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-gray-500 mb-6">
+                      Aucun message. Commencez la conversation !
+                    </div>
+                  )}
+                  
+                  <Separator className="my-4" />
+                  
+                  <MessageForm
+                    recipientId={otherUser?.id || location.state?.sellerId}
+                    conversationId={selectedConversation}
+                    onMessageSent={handleMessageSent}
+                  />
+                </div>
+              ) : (
+                <div className="text-center py-10 text-gray-500">
+                  Sélectionnez une conversation pour voir les messages
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
   );
-};
-
-export default Messages;
+}

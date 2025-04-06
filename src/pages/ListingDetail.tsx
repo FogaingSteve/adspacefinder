@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -34,15 +33,19 @@ import { useToggleFavorite } from "@/hooks/useListings";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import axios from "axios";
+import { ShareListingDialog } from "@/components/ShareListingDialog";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const ListingDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { getUserOnlineStatus } = useOnlineStatus();
   const [processingFavorite, setProcessingFavorite] = useState(false);
   const toggleFavorite = useToggleFavorite();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
-  
+  const [sellerStatus, setSellerStatus] = useState<{ isOnline: boolean, lastSeen: Date | null }>({ isOnline: false, lastSeen: null });
+
   const { data: listing, isLoading, error } = useQuery({
     queryKey: ['listing', id],
     queryFn: async () => {
@@ -50,7 +53,7 @@ const ListingDetail = () => {
       return response.data;
     }
   });
-  
+
   const { data: seller } = useQuery({
     queryKey: ['user', listing?.userId],
     queryFn: async () => {
@@ -61,7 +64,6 @@ const ListingDetail = () => {
         return response.data;
       } catch (apiError) {
         try {
-          // First try to get from profiles
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -72,7 +74,6 @@ const ListingDetail = () => {
             return profileData;
           }
           
-          // If not found in profiles, try to get from auth.users with raw_user_meta_data
           const { data: userData, error: userError } = await supabase
             .from('users')
             .select('id, email, created_at, raw_user_meta_data')
@@ -81,7 +82,6 @@ const ListingDetail = () => {
           
           if (userError) throw userError;
           
-          // Transform the data to match expected format
           return {
             id: userData.id,
             email: userData.email,
@@ -101,6 +101,20 @@ const ListingDetail = () => {
     },
     enabled: !!listing?.userId
   });
+
+  useEffect(() => {
+    if (seller?.id) {
+      const fetchStatus = async () => {
+        const status = await getUserOnlineStatus(seller.id);
+        setSellerStatus(status);
+      };
+      
+      fetchStatus();
+      
+      const interval = setInterval(fetchStatus, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [seller?.id, getUserOnlineStatus]);
 
   const handleToggleFavorite = async () => {
     if (!user) {
@@ -124,12 +138,12 @@ const ListingDetail = () => {
       setProcessingFavorite(false);
     }
   };
-  
+
   const handleShareListing = () => {
     navigator.clipboard.writeText(window.location.href);
     toast.success("Lien de l'annonce copié dans le presse-papier");
   };
-  
+
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -138,7 +152,7 @@ const ListingDetail = () => {
       return "Date inconnue";
     }
   };
-  
+
   const isFavorite = () => {
     if (!user || !listing?.favorites) return false;
     return listing.favorites.includes(user.id);
@@ -148,7 +162,7 @@ const ListingDetail = () => {
     setSelectedImageIndex(index);
     setIsImageDialogOpen(true);
   };
-  
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 px-4">
@@ -172,7 +186,7 @@ const ListingDetail = () => {
       </div>
     );
   }
-  
+
   if (error || !listing) {
     return (
       <div className="container mx-auto py-8 px-4">
@@ -191,7 +205,7 @@ const ListingDetail = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-6 flex items-center">
@@ -272,13 +286,10 @@ const ListingDetail = () => {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleShareListing}
-                >
-                  <Share className="h-4 w-4" />
-                </Button>
+                <ShareListingDialog 
+                  title={listing.title} 
+                  url={window.location.href} 
+                />
                 <Button
                   variant="outline"
                   size="icon"
@@ -351,6 +362,16 @@ const ListingDetail = () => {
                        seller.full_name || 
                        "Nom non spécifié"}
                     </span>
+                    {sellerStatus.isOnline ? (
+                      <Badge variant="outline" className="ml-2 bg-green-500 text-white border-green-500">
+                        <span className="mr-1 h-2 w-2 rounded-full bg-white inline-block"></span>
+                        En ligne
+                      </Badge>
+                    ) : sellerStatus.lastSeen ? (
+                      <Badge variant="outline" className="ml-2">
+                        Vu {formatDistanceToNow(sellerStatus.lastSeen, { locale: fr, addSuffix: true })}
+                      </Badge>
+                    ) : null}
                   </div>
                   
                   <Link 
