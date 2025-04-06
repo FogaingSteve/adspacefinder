@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -17,13 +16,18 @@ import { useNavigate } from 'react-router-dom';
 
 interface UserProfile {
   id: string;
-  email: string;
-  created_at: string;
+  email?: string;
+  created_at?: string;
   user_metadata?: {
     name?: string;
     avatar_url?: string;
     bio?: string;
+    full_name?: string;
   };
+  name?: string;
+  avatar_url?: string;
+  bio?: string;
+  full_name?: string;
 }
 
 interface Listing {
@@ -45,27 +49,55 @@ const ProfileView = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch user profile
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!userId) return;
 
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('users')
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
           .select('*')
           .eq('id', userId)
           .single();
 
-        if (error) {
-          console.error('Error fetching profile:', error);
+        if (!profileError && profileData) {
+          setProfile(profileData);
+          setIsLoading(false);
           return;
         }
 
-        setProfile(data);
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id, email, created_at, raw_user_meta_data')
+          .eq('id', userId)
+          .single();
+
+        if (!userError && userData) {
+          setProfile({
+            id: userData.id,
+            email: userData.email,
+            created_at: userData.created_at,
+            user_metadata: userData.raw_user_meta_data || {},
+            name: userData.raw_user_meta_data?.name,
+            full_name: userData.raw_user_meta_data?.full_name,
+            avatar_url: userData.raw_user_meta_data?.avatar_url
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        const response = await axios.get(`http://localhost:5000/api/users/${userId}`);
+        if (response.data) {
+          setProfile({
+            id: response.data.id || response.data._id,
+            name: response.data.name || response.data.userName,
+            email: response.data.email,
+            created_at: response.data.createdAt
+          });
+        }
       } catch (error) {
-        console.error('Unexpected error:', error);
+        console.error('Error fetching profile:', error);
       } finally {
         setIsLoading(false);
       }
@@ -74,11 +106,10 @@ const ProfileView = () => {
     fetchUserProfile();
   }, [userId]);
 
-  // Fetch user listings
   const { data: listings, isLoading: isListingsLoading } = useQuery({
     queryKey: ['user-listings', userId],
     queryFn: async () => {
-      const response = await axios.get(`/api/listings/user/${userId}`);
+      const response = await axios.get(`http://localhost:5000/api/listings/user/${userId}`);
       return response.data as Listing[];
     },
     enabled: !!userId && !isLoading,
@@ -88,7 +119,6 @@ const ProfileView = () => {
     if (!user || !userId) return;
     
     try {
-      // Check if a conversation already exists
       const { data: existingConversation, error: existingError } = await supabase
         .from('conversations')
         .select('*')
@@ -101,12 +131,10 @@ const ProfileView = () => {
       }
 
       if (existingConversation) {
-        // Navigate to existing conversation
         navigate(`/messages?conversation=${existingConversation.id}`);
         return;
       }
 
-      // Create a new conversation
       const { data: newConversation, error: newError } = await supabase
         .from('conversations')
         .insert({
@@ -122,10 +150,37 @@ const ProfileView = () => {
         return;
       }
 
-      // Navigate to the new conversation
       navigate(`/messages?conversation=${newConversation.id}`);
     } catch (error) {
       console.error('Unexpected error:', error);
+    }
+  };
+
+  const getUserName = () => {
+    if (!profile) return "Utilisateur";
+    
+    return profile.name || 
+           profile.user_metadata?.name || 
+           profile.full_name || 
+           profile.user_metadata?.full_name || 
+           "Utilisateur";
+  };
+
+  const getUserAvatar = () => {
+    return profile?.avatar_url || profile?.user_metadata?.avatar_url || "";
+  };
+
+  const getUserBio = () => {
+    return profile?.bio || profile?.user_metadata?.bio || "Aucune bio renseignée";
+  };
+
+  const getUserCreatedAt = () => {
+    if (!profile?.created_at) return "Date inconnue";
+    
+    try {
+      return format(new Date(profile.created_at), 'MMMM yyyy', { locale: fr });
+    } catch (error) {
+      return "Date inconnue";
     }
   };
 
@@ -170,17 +225,18 @@ const ProfileView = () => {
   return (
     <div className="container mx-auto py-8">
       <div className="flex flex-col gap-8">
-        {/* Profile Header */}
         <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
           <Avatar className="h-24 w-24">
-            <AvatarImage src={profile.user_metadata?.avatar_url || ""} />
-            <AvatarFallback>{profile.user_metadata?.name?.[0]?.toUpperCase() || profile.email[0].toUpperCase()}</AvatarFallback>
+            <AvatarImage src={getUserAvatar()} />
+            <AvatarFallback>
+              {getUserName()[0]?.toUpperCase() || "U"}
+            </AvatarFallback>
           </Avatar>
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold">{profile.user_metadata?.name || "Utilisateur"}</h1>
+            <h1 className="text-2xl font-bold">{getUserName()}</h1>
             <div className="flex items-center gap-1 text-gray-500">
               <CalendarDays className="h-4 w-4" />
-              <span>Membre depuis {format(new Date(profile.created_at), 'MMMM yyyy', { locale: fr })}</span>
+              <span>Membre depuis {getUserCreatedAt()}</span>
             </div>
             {user?.id !== userId && (
               <div className="flex gap-2 mt-4">
@@ -197,7 +253,6 @@ const ProfileView = () => {
           </div>
         </div>
 
-        {/* Tabs */}
         <Tabs defaultValue="listings">
           <TabsList>
             <TabsTrigger value="listings">Annonces</TabsTrigger>
@@ -254,15 +309,17 @@ const ProfileView = () => {
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-medium">Bio</h3>
-                    <p className="text-gray-600">{profile.user_metadata?.bio || "Aucune bio renseignée"}</p>
+                    <p className="text-gray-600">{getUserBio()}</p>
                   </div>
-                  <div>
-                    <h3 className="font-medium">Contact</h3>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Mail className="h-4 w-4" />
-                      <span>{profile.email}</span>
+                  {user?.id === userId && profile.email && (
+                    <div>
+                      <h3 className="font-medium">Contact</h3>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Mail className="h-4 w-4" />
+                        <span>{profile.email}</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

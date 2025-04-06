@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -8,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
   ArrowLeft, Heart, MessageCircle, Phone, Share, 
-  MapPin, Calendar, Tag, Store, User, Mail
+  MapPin, Calendar, Tag, Store, User, Mail, X
 } from "lucide-react";
 import {
   Carousel,
@@ -17,6 +18,15 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -30,6 +40,8 @@ const ListingDetail = () => {
   const { user } = useAuth();
   const [processingFavorite, setProcessingFavorite] = useState(false);
   const toggleFavorite = useToggleFavorite();
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   
   const { data: listing, isLoading, error } = useQuery({
     queryKey: ['listing', id],
@@ -49,14 +61,35 @@ const ListingDetail = () => {
         return response.data;
       } catch (apiError) {
         try {
-          const { data, error } = await supabase
+          // First try to get from profiles
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', listing.userId)
             .single();
             
-          if (error) throw error;
-          return data;
+          if (!profileError && profileData) {
+            return profileData;
+          }
+          
+          // If not found in profiles, try to get from auth.users with raw_user_meta_data
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('id, email, created_at, raw_user_meta_data')
+            .eq('id', listing.userId)
+            .single();
+          
+          if (userError) throw userError;
+          
+          // Transform the data to match expected format
+          return {
+            id: userData.id,
+            email: userData.email,
+            created_at: userData.created_at,
+            user_metadata: userData.raw_user_meta_data || {},
+            name: userData.raw_user_meta_data?.name || listing.userName || "Vendeur anonyme",
+            full_name: userData.raw_user_meta_data?.full_name
+          };
         } catch (supabaseError) {
           console.error("Error fetching seller info:", supabaseError);
           return { 
@@ -109,6 +142,11 @@ const ListingDetail = () => {
   const isFavorite = () => {
     if (!user || !listing?.favorites) return false;
     return listing.favorites.includes(user.id);
+  };
+
+  const openImageDialog = (index: number) => {
+    setSelectedImageIndex(index);
+    setIsImageDialogOpen(true);
   };
   
   if (isLoading) {
@@ -179,26 +217,44 @@ const ListingDetail = () => {
         <div className="md:col-span-2">
           <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
             {listing.images && listing.images.length > 0 ? (
-              <Carousel className="w-full">
-                <CarouselContent>
+              <div>
+                <div className="relative aspect-video overflow-hidden cursor-pointer" 
+                     onClick={() => openImageDialog(selectedImageIndex)}>
+                  <img
+                    src={listing.images[selectedImageIndex]}
+                    alt={`${listing.title} - image principale`}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "https://placehold.co/800x600/e2e8f0/1e293b?text=Image+non+disponible";
+                    }}
+                  />
+                  <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                    {selectedImageIndex + 1}/{listing.images.length}
+                  </div>
+                </div>
+                
+                {/* Thumbnails */}
+                <div className="grid grid-cols-4 gap-2 mt-2">
                   {listing.images.map((img: string, index: number) => (
-                    <CarouselItem key={index}>
-                      <div className="aspect-video w-full overflow-hidden">
-                        <img
-                          src={img}
-                          alt={`${listing.title} - image ${index + 1}`}
-                          className="w-full h-full object-contain"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "https://placehold.co/800x600/e2e8f0/1e293b?text=Image+non+disponible";
-                          }}
-                        />
-                      </div>
-                    </CarouselItem>
+                    <div 
+                      key={index}
+                      className={`aspect-square overflow-hidden cursor-pointer border-2 ${
+                        selectedImageIndex === index ? "border-primary" : "border-transparent"
+                      }`}
+                      onClick={() => setSelectedImageIndex(index)}
+                    >
+                      <img
+                        src={img}
+                        alt={`${listing.title} - miniature ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "https://placehold.co/150x150/e2e8f0/1e293b?text=Image+non+disponible";
+                        }}
+                      />
+                    </div>
                   ))}
-                </CarouselContent>
-                <CarouselPrevious />
-                <CarouselNext />
-              </Carousel>
+                </div>
+              </div>
             ) : (
               <div className="aspect-video bg-gray-100 flex items-center justify-center">
                 <p className="text-gray-500">Aucune image disponible</p>
@@ -288,7 +344,13 @@ const ListingDetail = () => {
                 <div className="space-y-4">
                   <div className="flex items-center">
                     <User className="h-4 w-4 mr-2 text-gray-500" />
-                    <span>{seller.name || seller.full_name || "Nom non spécifié"}</span>
+                    <span>
+                      {seller.name || 
+                       seller.user_metadata?.name || 
+                       seller.user_metadata?.full_name || 
+                       seller.full_name || 
+                       "Nom non spécifié"}
+                    </span>
                   </div>
                   
                   <Link 
@@ -340,6 +402,67 @@ const ListingDetail = () => {
           </Card>
         </div>
       </div>
+
+      {/* Image dialog */}
+      <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="flex justify-between items-center">
+              <span>{listing.title} - Image {selectedImageIndex + 1}/{listing.images?.length || 0}</span>
+              <DialogClose className="rounded-full p-1 hover:bg-gray-200">
+                <X className="h-5 w-5" />
+              </DialogClose>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {listing.images && listing.images.length > 0 && (
+            <div className="mt-4">
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {listing.images.map((img: string, index: number) => (
+                    <CarouselItem key={index}>
+                      <div className="flex justify-center items-center">
+                        <img
+                          src={img}
+                          alt={`${listing.title} - image ${index + 1}`}
+                          className="max-h-[60vh] object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://placehold.co/800x600/e2e8f0/1e293b?text=Image+non+disponible";
+                          }}
+                        />
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="left-2" />
+                <CarouselNext className="right-2" />
+              </Carousel>
+              
+              {/* Thumbnails in dialog */}
+              <div className="grid grid-cols-6 gap-2 mt-4">
+                {listing.images.map((img: string, index: number) => (
+                  <div 
+                    key={index}
+                    className={`aspect-square overflow-hidden cursor-pointer border-2 ${
+                      selectedImageIndex === index ? "border-primary" : "border-transparent"
+                    }`}
+                    onClick={() => setSelectedImageIndex(index)}
+                  >
+                    <img
+                      src={img}
+                      alt={`${listing.title} - miniature ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "https://placehold.co/150x150/e2e8f0/1e293b?text=Image+non+disponible";
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
