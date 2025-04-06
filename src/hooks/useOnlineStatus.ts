@@ -47,19 +47,23 @@ export function useOnlineStatus() {
       
       // Only run if the page is actually closing (not on hot reloads)
       if (document.visibilityState === 'hidden') {
-        supabase
-          .from('user_status')
-          .upsert({
-            user_id: user.id,
-            is_online: false,
-            last_seen: new Date().toISOString()
-          }, { onConflict: 'user_id' })
-          .then(() => {
+        // Using a Promise with proper error handling
+        const setOffline = async () => {
+          try {
+            await supabase
+              .from('user_status')
+              .upsert({
+                user_id: user.id,
+                is_online: false,
+                last_seen: new Date().toISOString()
+              }, { onConflict: 'user_id' });
             console.log('User set to offline');
-          })
-          .catch(error => {
+          } catch (error) {
             console.error('Error setting offline status:', error);
-          });
+          }
+        };
+
+        setOffline(); // Execute without waiting for the promise
       }
     };
   }, [user?.id]);

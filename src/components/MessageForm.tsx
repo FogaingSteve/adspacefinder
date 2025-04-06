@@ -108,9 +108,7 @@ export function MessageForm({
 
       toast("Message envoyé", {
         description: `Votre message a été envoyé à ${recipientName}`,
-        duration: 3000,
-        // Fix the type error by using a valid variant
-        variant: "default"
+        duration: 3000
       });
 
       // Clear the message

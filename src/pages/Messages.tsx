@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils";
 
 interface Message {
   id: string;
@@ -261,13 +262,14 @@ export default function Messages() {
     }
   };
   
-  const handleMessageSent = (conversationId: string) => {
-    setSelectedConversation(conversationId);
-    
-    // Add URL parameter for the conversation
-    const url = new URL(window.location.href);
-    url.searchParams.set('conversation', conversationId);
-    window.history.pushState({}, '', url.toString());
+  // Updated to handle the possibility of no parameters
+  const handleMessageSent = () => {
+    if (selectedConversation) {
+      // Add URL parameter for the conversation
+      const url = new URL(window.location.href);
+      url.searchParams.set('conversation', selectedConversation);
+      window.history.pushState({}, '', url.toString());
+    }
   };
   
   if (!user) {
@@ -331,7 +333,7 @@ export default function Messages() {
                         <Avatar>
                           <AvatarImage src={conversation.otherUser?.avatar_url || undefined} />
                           <AvatarFallback>
-                            {(conversation.otherUser?.full_name || conversation.otherUser?.email || "?").charAt(0).toUpperCase()}
+                            {getInitials(conversation.otherUser?.full_name || conversation.otherUser?.email || "?")}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
@@ -373,7 +375,7 @@ export default function Messages() {
                     <Avatar className="mr-2">
                       <AvatarImage src={otherUser?.avatar_url || undefined} />
                       <AvatarFallback>
-                        {(otherUser?.full_name || otherUser?.email || "?").charAt(0).toUpperCase()}
+                        {getInitials(otherUser?.full_name || otherUser?.email || "?")}
                       </AvatarFallback>
                     </Avatar>
                     <span>
@@ -432,7 +434,7 @@ export default function Messages() {
                   
                   <MessageForm
                     recipientId={otherUser?.id || location.state?.sellerId}
-                    conversationId={selectedConversation}
+                    recipientName={otherUser?.full_name || otherUser?.email || "Utilisateur"}
                     onMessageSent={handleMessageSent}
                   />
                 </div>

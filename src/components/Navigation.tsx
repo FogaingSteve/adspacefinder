@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import {
@@ -22,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { initializeSupabase } from "@/lib/supabase"
+import { NotificationDropdown } from "./NotificationDropdown"
 
 function SearchBar() {
   const navigate = useNavigate();
@@ -71,6 +72,7 @@ export function Navigation() {
 
         {user ? (
           <div className="flex items-center space-x-4">
+            <NotificationDropdown />
             <Link to="/listings/new">
               <Button variant="ghost" size="sm">
                 <Plus className="mr-2 h-4 w-4" />
@@ -82,7 +84,7 @@ export function Navigation() {
                 <Button variant="ghost" className="h-8 w-8 p-0 rounded-full">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user?.user_metadata?.avatar_url as string} />
-                    <AvatarFallback>{getInitials(user?.user_metadata?.full_name as string)}</AvatarFallback>
+                    <AvatarFallback>{getInitials(user?.user_metadata?.name as string)}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>

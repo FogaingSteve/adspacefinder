@@ -99,7 +99,7 @@ export function NotificationDropdown() {
                       {notification.message}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {format(new Date(notification.created_at), "dd MMM, HH:mm", { locale: fr })}
+                      {format(new Date(notification.createdAt), "dd MMM, HH:mm", { locale: fr })}
                     </p>
                   </div>
                 </div>
