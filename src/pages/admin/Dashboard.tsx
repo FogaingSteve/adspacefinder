@@ -9,20 +9,68 @@ import { ListingModeration } from "@/components/admin/ListingModeration";
 import { CategoryManagement } from "@/components/admin/CategoryManagement";
 import { Statistics } from "@/components/admin/Statistics";
 import { NotificationSettings } from "@/components/admin/NotificationSettings";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 export const AdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check if user is admin
-    if (!user?.user_metadata?.is_admin) {
-      navigate("/");
-    } else {
-      setIsAdmin(true);
-    }
+    const checkAdmin = async () => {
+      setIsLoading(true);
+      
+      try {
+        if (!user) {
+          setIsAdmin(false);
+          navigate("/");
+          return;
+        }
+        
+        // Vérifier si l'utilisateur a les métadonnées d'admin
+        if (user.user_metadata?.is_admin) {
+          console.log("Utilisateur est admin selon les métadonnées");
+          setIsAdmin(true);
+        } else {
+          console.log("Utilisateur n'est pas admin selon les métadonnées:", user);
+          
+          // On pourrait aussi vérifier via une API
+          // const response = await axios.get('/api/admin/check', {
+          //   headers: {
+          //     Authorization: `Bearer ${await user.getIdToken()}`
+          //   }
+          // });
+          // setIsAdmin(response.data.isAdmin);
+          
+          navigate("/");
+          toast.error("Accès non autorisé");
+        }
+      } catch (error) {
+        console.error("Erreur lors de la vérification des droits admin:", error);
+        navigate("/");
+        toast.error("Erreur lors de la vérification des droits admin");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAdmin();
   }, [user, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Button disabled className="gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Chargement...
+        </Button>
+      </div>
+    );
+  }
 
   if (!isAdmin) return null;
 
@@ -31,7 +79,7 @@ export const AdminDashboard = () => {
       <h1 className="text-3xl font-bold mb-8">Administration</h1>
       
       <Tabs defaultValue="users" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="users">Utilisateurs</TabsTrigger>
           <TabsTrigger value="listings">Annonces</TabsTrigger>
           <TabsTrigger value="categories">Catégories</TabsTrigger>

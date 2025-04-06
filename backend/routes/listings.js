@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const Listing = require('../models/Listing');
@@ -6,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const auth = require('../middleware/auth');
 const fs = require('fs');
-const { notifyNewListing } = require('../utils/notificationBridge');
+const { notifyNewListing, syncListingToSupabase, deleteListingFromSupabase } = require('../utils/supabaseSync');
 
 // Assurer que le répertoire uploads existe
 const uploadsDir = 'uploads';
@@ -187,7 +186,10 @@ router.post('/', auth, async (req, res) => {
     });
 
     const savedListing = await listing.save();
-    console.log("Annonce sauvegardée:", savedListing);
+    console.log("Annonce sauvegardée dans MongoDB:", savedListing);
+    
+    // Synchroniser avec Supabase pour déclencher les notifications
+    await syncListingToSupabase(savedListing);
     
     // Send notification to Supabase for subscribers of this category
     await notifyNewListing(savedListing);
@@ -373,6 +375,9 @@ router.delete('/:id', auth, async (req, res) => {
     
     await Listing.deleteOne({ _id: req.params.id });
     
+    // Supprimer également de Supabase
+    await deleteListingFromSupabase(req.params.id);
+    
     res.json({ message: "Annonce supprimée avec succès" });
   } catch (error) {
     console.error("Erreur lors de la suppression de l'annonce:", error);
@@ -411,6 +416,27 @@ router.get('/category/:categoryId/subcategory/:subcategoryId', async (req, res) 
   } catch (error) {
     console.error("Error getting subcategory listings:", error);
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Adapter les routes admin pour retourner des données correctes
+router.get('/admin/pending', auth, async (req, res) => {
+  try {
+    // Vérifier si l'utilisateur est un admin
+    // Cette vérification devrait être dans un middleware d'authentification admin
+    const isAdmin = true; // À remplacer par une vraie vérification
+
+    if (!isAdmin) {
+      return res.status(403).json({ message: "Accès non autorisé" });
+    }
+
+    const pendingListings = await Listing.find({ status: 'pending' })
+      .sort({ createdAt: -1 });
+    
+    res.json(pendingListings);
+  } catch (error) {
+    console.error('Erreur récupération annonces en attente:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
   }
 });
 

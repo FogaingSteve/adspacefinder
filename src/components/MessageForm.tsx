@@ -1,28 +1,43 @@
 
-import { useState } from 'react';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/hooks/useAuth';
-import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils";
 
 interface MessageFormProps {
   recipientId: string;
-  conversationId?: string;
-  onMessageSent?: (conversationId: string) => void;
+  recipientName?: string;
+  onMessageSent?: () => void;
+  listingId?: string;
+  listingTitle?: string;
 }
 
-export function MessageForm({ recipientId, conversationId: existingConversationId, onMessageSent }: MessageFormProps) {
+export function MessageForm({
+  recipientId,
+  recipientName = "Vendeur",
+  onMessageSent,
+  listingId,
+  listingTitle,
+}: MessageFormProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [message, setMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const { getUserOnlineStatus } = useOnlineStatus();
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [recipientStatus, setRecipientStatus] = useState<{ isOnline: boolean, lastSeen: Date | null }>({ isOnline: false, lastSeen: null });
+  const [recipientStatus, setRecipientStatus] = useState<{ isOnline: boolean; lastSeen: Date | null }>({
+    isOnline: false,
+    lastSeen: null,
+  });
 
-  // Fetch recipient status
+  // Fetch recipient status when component mounts
   useState(() => {
     const fetchStatus = async () => {
       if (recipientId) {
@@ -30,112 +45,141 @@ export function MessageForm({ recipientId, conversationId: existingConversationI
         setRecipientStatus(status);
       }
     };
-    
     fetchStatus();
-    
-    // Refresh every 60 seconds
-    const interval = setInterval(fetchStatus, 60000);
-    return () => clearInterval(interval);
   });
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user || !message.trim() || !recipientId) return;
-    
-    setIsLoading(true);
+    if (!user) {
+      toast.error("Vous devez être connecté pour envoyer un message");
+      navigate("/signin");
+      return;
+    }
+
+    if (!message.trim()) {
+      toast.error("Le message ne peut pas être vide");
+      return;
+    }
+
+    setIsSending(true);
     
     try {
-      let conversationId = existingConversationId;
+      // 1. Find or create conversation
+      let conversationId;
       
-      // If no conversation exists, create one
-      if (!conversationId) {
-        // Check if a conversation already exists between these users
-        const { data: existingConversations, error: convError } = await supabase
+      // Check if conversation exists
+      const { data: existingConv } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+        .or(`user1_id.eq.${recipientId},user2_id.eq.${recipientId}`)
+        .single();
+
+      if (existingConv) {
+        conversationId = existingConv.id;
+      } else {
+        // Create new conversation
+        const { data: newConv, error: convError } = await supabase
           .from('conversations')
+          .insert({
+            user1_id: user.id,
+            user2_id: recipientId
+          })
           .select('id')
-          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-          .or(`user1_id.eq.${recipientId},user2_id.eq.${recipientId}`);
-          
+          .single();
+
         if (convError) throw convError;
-        
-        if (existingConversations && existingConversations.length > 0) {
-          conversationId = existingConversations[0].id;
-        } else {
-          // Create new conversation
-          const { data: newConversation, error: createError } = await supabase
-            .from('conversations')
-            .insert({
-              user1_id: user.id,
-              user2_id: recipientId,
-              last_message_time: new Date().toISOString()
-            })
-            .select('id')
-            .single();
-            
-          if (createError) throw createError;
-          conversationId = newConversation.id;
-        }
+        conversationId = newConv.id;
       }
-      
-      // Send the message
-      const { error: messageError } = await supabase
+
+      // 2. Insert message
+      const { error: msgError } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
           sender_id: user.id,
           recipient_id: recipientId,
           content: message,
-          read: false,
-          created_at: new Date().toISOString()
+          read: false
         });
-        
-      if (messageError) throw messageError;
+
+      if (msgError) throw msgError;
+
+      toast("Message envoyé", {
+        description: `Votre message a été envoyé à ${recipientName}`,
+        duration: 3000,
+        // Fix the type error by using a valid variant
+        variant: "default"
+      });
+
+      // Clear the message
+      setMessage("");
       
-      // Clear the message input
-      setMessage('');
-      
-      // Callback
-      if (onMessageSent && conversationId) {
-        onMessageSent(conversationId);
+      // Call callback if provided
+      if (onMessageSent) {
+        onMessageSent();
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error("Erreur lors de l'envoi du message:", error);
+      toast.error("Erreur lors de l'envoi du message");
     } finally {
-      setIsLoading(false);
+      setIsSending(false);
     }
   };
-  
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center space-x-2">
-        <h3 className="text-sm font-medium">Status:</h3>
-        {recipientStatus.isOnline ? (
-          <Badge variant="success" className="bg-green-500">
-            <span className="mr-1 h-2 w-2 rounded-full bg-white inline-block"></span>
-            En ligne
-          </Badge>
-        ) : (
-          <Badge variant="secondary">
-            {recipientStatus.lastSeen ? 
-              `Vu ${formatDistanceToNow(recipientStatus.lastSeen, { locale: fr, addSuffix: true })}` : 
-              'Hors ligne'
-            }
-          </Badge>
-        )}
-      </div>
-      
-      <form onSubmit={handleSendMessage} className="space-y-2">
-        <Textarea
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Écrivez votre message..."
-          className="min-h-[100px]"
-        />
-        <Button type="submit" disabled={isLoading || !message.trim()}>
-          {isLoading ? "Envoi..." : "Envoyer le message"}
-        </Button>
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Avatar>
+            <AvatarImage src="" />
+            <AvatarFallback>{getInitials(recipientName)}</AvatarFallback>
+          </Avatar>
+          <div>
+            <div>Message à {recipientName}</div>
+            <div className="text-xs text-muted-foreground">
+              {recipientStatus.isOnline ? (
+                <span className="text-green-500 flex items-center">
+                  <span className="h-2 w-2 rounded-full bg-green-500 mr-1 inline-block"></span>
+                  En ligne
+                </span>
+              ) : recipientStatus.lastSeen ? (
+                <span className="text-gray-500">
+                  Vu {new Date(recipientStatus.lastSeen).toLocaleDateString()}
+                </span>
+              ) : (
+                <span className="text-gray-500">Hors ligne</span>
+              )}
+            </div>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <form onSubmit={handleSubmit}>
+        <CardContent>
+          {listingId && listingTitle && (
+            <div className="mb-4 p-3 border rounded bg-gray-50 text-sm">
+              <div className="font-medium">À propos de l'annonce:</div>
+              <div className="text-blue-600">{listingTitle}</div>
+            </div>
+          )}
+          <Textarea
+            placeholder="Votre message..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="min-h-[120px]"
+            required
+          />
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <Button variant="outline" type="button" onClick={() => navigate(-1)}>
+            Annuler
+          </Button>
+          <Button type="submit" disabled={isSending}>
+            {isSending ? "Envoi..." : "Envoyer"}
+          </Button>
+        </CardFooter>
       </form>
-    </div>
+    </Card>
   );
 }

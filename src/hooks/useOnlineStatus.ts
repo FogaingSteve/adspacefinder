@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './useAuth';
@@ -72,11 +73,15 @@ export function useOnlineStatus() {
         schema: 'public',
         table: 'user_status'
       }, payload => {
-        const { user_id, is_online } = payload.new;
-        setOnlineUsers(prev => ({
-          ...prev,
-          [user_id]: is_online
-        }));
+        if (payload.new && typeof payload.new === 'object') {
+          const userData = payload.new as any;
+          if (userData.user_id && userData.is_online !== undefined) {
+            setOnlineUsers(prev => ({
+              ...prev,
+              [userData.user_id]: userData.is_online
+            }));
+          }
+        }
       })
       .subscribe();
       

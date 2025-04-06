@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Share, Mail, Copy, Check, Facebook, MessageCircle } from "lucide-react";
+import { Share, Mail, Copy, Check, Facebook, MessageCircle, Twitter } from "lucide-react";
 import { toast } from "sonner";
 
 interface ShareListingDialogProps {
@@ -43,6 +43,11 @@ export function ShareListingDialog({ title, url }: ShareListingDialogProps) {
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
+  const handleTwitterShare = () => {
+    const text = encodeURIComponent(`Découvrez cette annonce: ${title}`);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(url)}`, '_blank');
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -65,7 +70,7 @@ export function ShareListingDialog({ title, url }: ShareListingDialogProps) {
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>
-        <div className="grid grid-cols-4 gap-4 py-4">
+        <div className="grid grid-cols-5 gap-4 py-4">
           <Button
             variant="outline"
             className="flex flex-col items-center justify-center h-20 space-y-2"
@@ -97,6 +102,14 @@ export function ShareListingDialog({ title, url }: ShareListingDialogProps) {
           >
             <MessageCircle className="h-5 w-5 text-green-600" />
             <span className="text-xs">WhatsApp</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="flex flex-col items-center justify-center h-20 space-y-2"
+            onClick={handleTwitterShare}
+          >
+            <Twitter className="h-5 w-5 text-blue-400" />
+            <span className="text-xs">Twitter</span>
           </Button>
         </div>
       </DialogContent>

@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Table,
@@ -13,18 +14,43 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { adminService } from "@/services/admin";
 import { Listing } from "@/types/listing";
+import axios from "axios";
+import { useAuth } from "@/hooks/useAuth";
 
 export const ListingModeration = () => {
   const [listings, setListings] = useState<Listing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
 
-  const { isLoading } = useQuery({
-    queryKey: ['admin-listings'],
-    queryFn: adminService.getPendingListings,
-    meta: {
-      onSuccess: (data: Listing[]) => setListings(data),
-      onError: () => toast.error("Erreur lors du chargement des annonces")
+  // Charger les annonces en attente
+  useEffect(() => {
+    const fetchPendingListings = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch from backend
+        const response = await axios.get(
+          "http://localhost:5000/api/listings/admin/pending", 
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`
+            }
+          }
+        );
+        
+        console.log("Annonces en attente:", response.data);
+        setListings(response.data || []);
+      } catch (error) {
+        console.error("Erreur lors du chargement des annonces en attente:", error);
+        toast.error("Erreur lors du chargement des annonces en attente");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.user_metadata?.is_admin) {
+      fetchPendingListings();
     }
-  });
+  }, [user]);
 
   const handleApproveListing = async (listingId: string) => {
     try {
@@ -46,7 +72,11 @@ export const ListingModeration = () => {
     }
   };
 
-  if (isLoading) return <div>Chargement...</div>;
+  if (isLoading) return <div>Chargement des annonces en attente...</div>;
+
+  if (listings.length === 0) {
+    return <div className="text-center p-6">Aucune annonce en attente de modération</div>;
+  }
 
   return (
     <div>
@@ -63,21 +93,23 @@ export const ListingModeration = () => {
         <TableBody>
           {listings.map((listing) => (
             <TableRow key={listing.id}>
-              <TableCell>{listing.title}</TableCell>
+              <TableCell className="font-medium">{listing.title}</TableCell>
               <TableCell>{listing.category}</TableCell>
               <TableCell>{listing.price}€</TableCell>
               <TableCell>
-                <Badge>En attente</Badge>
+                <Badge variant="outline">En attente</Badge>
               </TableCell>
               <TableCell className="space-x-2">
                 <Button
                   variant="default"
+                  size="sm"
                   onClick={() => handleApproveListing(listing.id!)}
                 >
                   Approuver
                 </Button>
                 <Button
                   variant="destructive"
+                  size="sm"
                   onClick={() => handleRejectListing(listing.id!)}
                 >
                   Rejeter
