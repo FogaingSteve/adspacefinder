@@ -37,18 +37,20 @@ export const useSearchListings = (
         // Construct the query parameters
         const params: Record<string, string> = {};
         if (query) params.q = query;
-        if (category) params.category = category;
+        if (category && category !== "all") params.category = category;
         
         // Fetch from search endpoint
         const response = await axios.get("http://localhost:5000/api/listings/search-results", { 
           params 
         });
         
+        console.log("Search response:", response.data);
+        
         // Client-side filtering for location and price if needed
         let results = response.data;
         
         // Filter by city if specified
-        if (city) {
+        if (city && city !== "all") {
           results = results.filter((listing: any) => 
             listing.location?.toLowerCase().includes(city.toLowerCase())
           );
@@ -85,7 +87,7 @@ export const useSearchListings = (
         throw error;
       }
     },
-    enabled: query.length > 0 || category.length > 0 || city.length > 0 || priceMin > 0 || priceMax > 0
+    enabled: Boolean(query) || Boolean(category) || Boolean(city) || priceMin > 0 || priceMax > 0
   });
 };
 
@@ -244,19 +246,42 @@ export const useCreateListing = () => {
   return useMutation({
     mutationFn: async (listingData: any) => {
       try {
+        console.log("Creating listing with data:", listingData);
+        // Get token from localStorage
+        const token = localStorage.getItem("token") || localStorage.getItem("userSession");
+        
+        if (!token) {
+          throw new Error("Vous devez être connecté pour créer une annonce");
+        }
+        
+        let authToken = token;
+        // If token is a JSON string (userSession), extract the JWT
+        if (token.startsWith('{')) {
+          try {
+            const sessionData = JSON.parse(token);
+            // Use Supabase session if available
+            const { data } = await supabase.auth.getSession();
+            if (data.session?.access_token) {
+              authToken = data.session.access_token;
+            }
+          } catch (e) {
+            console.error("Error parsing token:", e);
+          }
+        }
+        
         const response = await axios.post(
           "http://localhost:5000/api/listings",
           listingData,
           {
             headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`
+              Authorization: `Bearer ${authToken}`
             }
           }
         );
         return response.data;
-      } catch (error) {
-        console.error("Error creating listing:", error);
-        throw error;
+      } catch (error: any) {
+        console.error("Error creating listing:", error.response?.data || error);
+        throw new Error(error.response?.data?.message || error.message || "Erreur lors de la création de l'annonce");
       }
     },
     onSuccess: () => {

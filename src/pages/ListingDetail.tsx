@@ -35,6 +35,8 @@ import { supabase } from "@/lib/supabase";
 import axios from "axios";
 import { ShareListingDialog } from "@/components/ShareListingDialog";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { ReviewForm } from '@/components/ReviewForm';
+import { ReviewsList } from '@/components/ReviewsList';
 
 const ListingDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -45,6 +47,7 @@ const ListingDetail = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   const [sellerStatus, setSellerStatus] = useState<{ isOnline: boolean, lastSeen: Date | null }>({ isOnline: false, lastSeen: null });
+  const [reviewsRefreshTrigger, setReviewsRefreshTrigger] = useState(0);
 
   const { data: listing, isLoading, error } = useQuery({
     queryKey: ['listing', id],
@@ -161,6 +164,10 @@ const ListingDetail = () => {
   const openImageDialog = (index: number) => {
     setSelectedImageIndex(index);
     setIsImageDialogOpen(true);
+  };
+
+  const handleReviewSubmitted = () => {
+    setReviewsRefreshTrigger(prev => prev + 1);
   };
 
   if (isLoading) {
@@ -484,6 +491,20 @@ const ListingDetail = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <div className="mt-8 space-y-6">
+        <h2 className="text-2xl font-bold">Avis des clients</h2>
+        <ReviewsList 
+          listingId={id} 
+          refreshTrigger={reviewsRefreshTrigger}
+        />
+        <div className="mt-6">
+          <ReviewForm 
+            listingId={id}
+            onSuccess={handleReviewSubmitted} 
+          />
+        </div>
+      </div>
     </div>
   );
 };

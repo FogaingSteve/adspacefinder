@@ -1,4 +1,3 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -6,6 +5,7 @@ const listingsRoutes = require('./routes/listings');
 const categoriesRoutes = require('./routes/categories');
 const adminRoutes = require('./routes/admin');
 const usersRoutes = require('./routes/users');
+const reviewsRoutes = require('./routes/reviews');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const Admin = require('./models/Admin');
@@ -59,6 +59,7 @@ app.use('/api/listings', listingsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/reviews', reviewsRoutes);
 
 // Route pour les villes
 app.get('/api/cities', (req, res) => {

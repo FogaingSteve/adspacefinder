@@ -47,7 +47,7 @@ export function useOnlineStatus() {
       
       // Only run if the page is actually closing (not on hot reloads)
       if (document.visibilityState === 'hidden') {
-        // Using a Promise with proper error handling
+        // Properly handle the Promise
         const setOffline = async () => {
           try {
             await supabase
@@ -63,7 +63,10 @@ export function useOnlineStatus() {
           }
         };
 
-        setOffline(); // Execute without waiting for the promise
+        // Execute the async function and handle the Promise properly
+        setOffline().catch(error => {
+          console.error('Unhandled error setting offline status:', error);
+        });
       }
     };
   }, [user?.id]);

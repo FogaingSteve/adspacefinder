@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,6 +28,7 @@ import { useCreateListing } from "@/hooks/useListings";
 import { categoryService } from "@/services/api";
 import { toast } from "sonner";
 import { useCategories } from "@/data/topCategories";
+import { useAuth } from "@/hooks/useAuth";
 
 const formSchema = z.object({
   title: z.string().min(5, "Le titre doit contenir au moins 5 caractères"),
@@ -42,10 +44,19 @@ type FormValues = z.infer<typeof formSchema>;
 
 const CreateListing = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isPreview, setIsPreview] = useState(false);
   const [subcategories, setSubcategories] = useState<any[]>([]);
   const createListingMutation = useCreateListing();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!user) {
+      toast.error("Vous devez être connecté pour créer une annonce");
+      navigate("/auth/signin");
+    }
+  }, [user, navigate]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -87,6 +98,12 @@ const CreateListing = () => {
   }, [selectedCategory, form]);
 
   const onSubmit = (data: FormValues) => {
+    if (!user) {
+      toast.error("Vous devez être connecté pour créer une annonce");
+      navigate("/auth/signin");
+      return;
+    }
+
     createListingMutation.mutate({
       title: data.title,
       description: data.description,
@@ -94,11 +111,16 @@ const CreateListing = () => {
       subcategory: data.subcategory,
       price: parseFloat(data.price),
       location: data.location,
-      images: data.images
+      images: data.images,
+      userId: user.id // S'assurer que l'ID utilisateur est inclus
     }, {
       onSuccess: () => {
         // Redirection vers la page d'accueil après création
-        navigate("/");
+        navigate("/dashboard");
+      },
+      onError: (error) => {
+        console.error("Error creating listing:", error);
+        toast.error("Erreur lors de la création: " + error.message);
       }
     });
   };

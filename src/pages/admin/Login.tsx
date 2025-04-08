@@ -25,6 +25,7 @@ export const AdminLogin = () => {
     setIsLoading(true);
     
     try {
+      console.log("Admin login attempt:", { email });
       const response = await axios.post('http://localhost:5000/api/admin/login', {
         email,
         password
@@ -32,7 +33,11 @@ export const AdminLogin = () => {
       
       localStorage.setItem('adminToken', response.data.token);
       toast.success("Connexion réussie");
-      navigate('/admin/dashboard');
+      
+      // Force navigation after a short delay to ensure state updates
+      setTimeout(() => {
+        navigate('/admin/dashboard');
+      }, 100);
     } catch (error: any) {
       console.error("Error logging in:", error);
       toast.error(error.response?.data?.message || "Identifiants incorrects");

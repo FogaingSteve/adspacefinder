@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
@@ -100,25 +101,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error
       
       if (data.user) {
-        // Créer une entrée dans la table profiles pour le nouvel utilisateur
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: data.user.email,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-        
-        if (profileError) {
-          console.error('Erreur lors de la création du profil:', profileError)
+        try {
+          // Créer une entrée dans la table profiles pour le nouvel utilisateur
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              email: data.user.email,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+          
+          if (profileError) {
+            console.error('Erreur lors de la création du profil:', profileError)
+          }
+        } catch (insertError) {
+          console.error('Exception lors de la création du profil:', insertError)
           // Continuer malgré l'erreur pour ne pas bloquer l'inscription
         }
       }
       
-      toast.success('Compte créé avec succès')
+      toast.success('Compte créé avec succès. Veuillez vérifier votre email pour confirmer votre compte.')
       navigate('/auth/signin')
     } catch (error: any) {
+      console.error('Erreur de signup:', error)
       toast.error(error.message || "Erreur lors de l'inscription")
     }
   }
