@@ -19,17 +19,25 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
+    console.log("Admin login attempt:", { email });
+    
     // Vérifier si l'admin existe
     const admin = await Admin.findOne({ email });
     if (!admin) {
+      console.log("Admin not found:", email);
       return res.status(401).json({ message: 'Identifiants incorrects' });
     }
+    
+    console.log("Admin found, checking password...");
     
     // Vérifier le mot de passe
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
+      console.log("Password mismatch for admin:", email);
       return res.status(401).json({ message: 'Identifiants incorrects' });
     }
+    
+    console.log("Password match, generating token...");
     
     // Créer un token JWT
     const token = jwt.sign(
@@ -38,7 +46,16 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
     
-    res.json({ token });
+    console.log("Admin login successful, token generated");
+    
+    res.json({ 
+      token,
+      admin: {
+        id: admin._id,
+        email: admin.email,
+        name: admin.name
+      }
+    });
   } catch (error) {
     console.error('Erreur de connexion admin:', error);
     res.status(500).json({ message: 'Erreur serveur' });

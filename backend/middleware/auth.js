@@ -15,6 +15,18 @@ const auth = async (req, res, next) => {
       throw new Error('Token manquant');
     }
 
+    // Try JWT validation first for MongoDB users
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (decoded && decoded.userId) {
+        req.userId = decoded.userId;
+        return next();
+      }
+    } catch (jwtError) {
+      console.log("JWT validation failed, trying Supabase:", jwtError.message);
+      // Continue to Supabase validation if JWT fails
+    }
+
     // Vérifier le token Supabase
     const { data: { user }, error } = await supabase.auth.getUser(token);
     

@@ -31,13 +31,16 @@ export const AdminLogin = () => {
         password
       });
       
+      // Store the token in localStorage
       localStorage.setItem('adminToken', response.data.token);
       toast.success("Connexion réussie");
+      
+      console.log("Admin login successful, redirecting to dashboard...");
       
       // Force navigation after a short delay to ensure state updates
       setTimeout(() => {
         navigate('/admin/dashboard');
-      }, 100);
+      }, 500);
     } catch (error: any) {
       console.error("Error logging in:", error);
       toast.error(error.response?.data?.message || "Identifiants incorrects");

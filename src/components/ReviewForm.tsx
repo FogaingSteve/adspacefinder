@@ -46,6 +46,25 @@ export function ReviewForm({ listingId, onSuccess }: ReviewFormProps) {
 
     setIsSubmitting(true);
     try {
+      // Get the appropriate token
+      const token = localStorage.getItem('token') || localStorage.getItem('userSession');
+      
+      if (!token) {
+        toast.error("Session expirée, veuillez vous reconnecter");
+        return;
+      }
+      
+      // Try to parse token from userSession if it's in that format
+      let authToken = token;
+      try {
+        const session = JSON.parse(token);
+        if (session.access_token) {
+          authToken = session.access_token;
+        }
+      } catch (e) {
+        // Not a JSON object, use the token as is
+      }
+      
       const response = await axios.post(
         `http://localhost:5000/api/reviews`,
         {
@@ -55,7 +74,7 @@ export function ReviewForm({ listingId, onSuccess }: ReviewFormProps) {
         },
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${authToken}`,
           },
         }
       );
