@@ -244,7 +244,6 @@ export const useCreateListing = () => {
   }, []);
 
   return { 
-    mutate: createListing, 
     mutateAsync: createListing, 
     isPending: isLoading, 
     error 
@@ -275,7 +274,6 @@ export const useDeleteListing = () => {
   }, []);
 
   return { 
-    mutate: deleteListing, 
     mutateAsync: deleteListing, 
     isPending: isLoading, 
     error 
@@ -292,7 +290,7 @@ export const useMarkListingAsSold = () => {
   const markAsSold = useCallback(async (listingId: string) => {
     setIsLoading(true);
     try {
-      await listingService.toggleSoldStatus(listingId);
+      await listingService.updateListing(listingId, { isSold: true });
       setError(null);
       toast.success("Statut de l'annonce mis à jour");
     } catch (err: any) {
@@ -306,7 +304,6 @@ export const useMarkListingAsSold = () => {
   }, []);
 
   return { 
-    mutate: markAsSold, 
     mutateAsync: markAsSold, 
     isPending: isLoading, 
     error 

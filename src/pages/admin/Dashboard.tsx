@@ -12,6 +12,7 @@ import { NotificationSettings } from "@/components/admin/NotificationSettings";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import axios from "axios";
 
 export const AdminDashboard = () => {
   const { user } = useAuth();
@@ -25,33 +26,42 @@ export const AdminDashboard = () => {
       setIsLoading(true);
       
       try {
-        if (!user) {
-          setIsAdmin(false);
-          navigate("/");
-          return;
+        // Vérifier le token admin dans le localStorage
+        const adminToken = localStorage.getItem('adminToken');
+        
+        if (adminToken) {
+          try {
+            // Vérifier si le token admin est valide
+            const response = await axios.get('http://localhost:5000/api/admin/verify', {
+              headers: {
+                Authorization: `Bearer ${adminToken}`
+              }
+            });
+            
+            if (response.data.valid) {
+              console.log("Admin token valide");
+              setIsAdmin(true);
+              setIsLoading(false);
+              return;
+            }
+          } catch (tokenError) {
+            console.error("Erreur de vérification token admin:", tokenError);
+            localStorage.removeItem('adminToken');
+          }
         }
         
-        // Vérifier si l'utilisateur a les métadonnées d'admin
-        if (user.user_metadata?.is_admin) {
+        // Si pas de token admin valide, vérifier si l'utilisateur est admin via ses métadonnées
+        if (user?.user_metadata?.is_admin) {
           console.log("Utilisateur est admin selon les métadonnées");
           setIsAdmin(true);
         } else {
-          console.log("Utilisateur n'est pas admin selon les métadonnées:", user);
-          
-          // On pourrait aussi vérifier via une API
-          // const response = await axios.get('/api/admin/check', {
-          //   headers: {
-          //     Authorization: `Bearer ${await user.getIdToken()}`
-          //   }
-          // });
-          // setIsAdmin(response.data.isAdmin);
-          
-          navigate("/");
+          console.log("Utilisateur n'est pas admin:", user);
+          navigate("/admin");
           toast.error("Accès non autorisé");
         }
       } catch (error) {
         console.error("Erreur lors de la vérification des droits admin:", error);
-        navigate("/");
+        navigate("/admin");
         toast.error("Erreur lors de la vérification des droits admin");
       } finally {
         setIsLoading(false);

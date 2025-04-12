@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
@@ -111,10 +112,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       // If MongoDB auth fails, try Supabase auth
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      })
+      });
       
       if (error) throw error;
       
@@ -127,10 +128,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string) => {
     try {
-      // Try MongoDB signup first
+      // Essayer d'abord l'inscription avec MongoDB
       try {
         const response = await axios.post('http://localhost:5000/api/users/register', {
-          name: email.split('@')[0], // Basic name from email
+          name: email.split('@')[0], // Nom de base à partir de l'email
           email,
           password
         });
@@ -138,7 +139,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (response.data && response.data.token) {
           localStorage.setItem('token', response.data.token);
           
-          // Create user object from MongoDB response
+          // Créer l'objet utilisateur à partir de la réponse MongoDB
           const mongoUser: User = {
             id: response.data.user.id,
             email: response.data.user.email,
@@ -157,25 +158,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } catch (mongoError: any) {
         console.error("MongoDB signup error:", mongoError);
         
-        // If MongoDB fails with a duplicate user error, show a specific message
+        // Si MongoDB échoue avec une erreur d'utilisateur en double, afficher un message spécifique
         if (mongoError.response?.status === 400 && 
             mongoError.response?.data?.message?.includes("existe déjà")) {
           toast.error(mongoError.response.data.message);
           return;
         }
-        // Otherwise continue to try Supabase
+        // Sinon continuer pour essayer Supabase
       }
       
-      // If MongoDB signup fails, try Supabase signup
-      const { error } = await supabase.auth.signUp({
+      // Si l'inscription à MongoDB échoue, essayer l'inscription à Supabase
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            name: email.split('@')[0]
+          }
+        }
       });
       
       if (error) throw error;
       
-      toast.success('Compte créé avec succès. Veuillez vérifier votre email pour confirmer votre compte.');
-      navigate('/auth/signin');
+      if (data.user) {
+        toast.success('Compte créé avec succès. Veuillez vérifier votre email pour confirmer votre compte.');
+        navigate('/auth/signin');
+      } else {
+        toast.error("Erreur lors de la création du compte");
+      }
     } catch (error: any) {
       console.error('Erreur de signup:', error);
       toast.error(error.message || "Erreur lors de l'inscription");

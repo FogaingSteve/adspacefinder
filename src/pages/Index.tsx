@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin } from "lucide-react";
@@ -5,7 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { RecentListings } from "@/components/RecentListings";
-import { useSearchListings } from "@/hooks/useListings";
+import { useSearchListings, SearchOptions } from "@/hooks/useListings";
 import { toast } from "sonner";
 import { useCategories, categoryIcons } from "@/data/topCategories";
 import { CategoryListings } from "@/components/CategoryListings";
@@ -29,11 +30,12 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [priceRange, setPriceRange] = useState("");
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<SearchOptions>({
+    query: "",
     category: "",
     city: "",
-    priceMin: 0,
-    priceMax: 0
+    minPrice: 0,
+    maxPrice: 0
   });
 
   const formatRelativeDate = (dateString: string | Date) => {
@@ -79,6 +81,8 @@ const Index = () => {
     return { min, max };
   };
 
+  const { listings: searchResults, isLoading, searchListings } = useSearchListings();
+
   const applyFilters = () => {
     if (!searchQuery.trim() && !selectedCategory && !selectedCity && !priceRange) {
       toast.error("Veuillez sélectionner au moins un critère de recherche");
@@ -87,26 +91,30 @@ const Index = () => {
     
     const { min: priceMin, max: priceMax } = parsePriceRange(priceRange);
     
-    setFilters({
+    const searchOptions: SearchOptions = {
+      query: searchQuery,
       category: selectedCategory,
       city: selectedCity,
-      priceMin,
-      priceMax
-    });
+      minPrice: priceMin,
+      maxPrice: priceMax
+    };
     
+    // Mettre à jour les filtres d'état
+    setFilters(searchOptions);
+    
+    // Effectuer la recherche
+    searchListings(searchOptions);
+    
+    // Créer l'URL de recherche pour la navigation
     const queryParams = new URLSearchParams();
-    
     if (searchQuery) queryParams.set('q', searchQuery);
     if (selectedCategory) queryParams.set('category', selectedCategory);
     if (selectedCity) queryParams.set('city', selectedCity);
     if (priceMin > 0) queryParams.set('priceMin', priceMin.toString());
     if (priceMax > 0) queryParams.set('priceMax', priceMax.toString());
     
-    if (queryParams.toString()) {
-      navigate(`/search?${queryParams.toString()}`);
-    } else {
-      toast.error("Veuillez spécifier au moins un critère de recherche");
-    }
+    // Mettre à jour l'URL sans naviguer vers une nouvelle page
+    window.history.pushState({}, '', `/?${queryParams.toString()}`);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -114,14 +122,6 @@ const Index = () => {
       applyFilters();
     }
   };
-
-  const { data: searchResults, isLoading } = useSearchListings(
-    searchQuery,
-    filters.category,
-    filters.city,
-    filters.priceMin,
-    filters.priceMax
-  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -198,7 +198,7 @@ const Index = () => {
         </div>
       </div>
 
-      {searchQuery && searchResults && (
+      {searchQuery && searchResults && searchResults.length > 0 && (
         <div className="container mx-auto px-4 py-8">
           <h2 className="text-2xl font-bold mb-6">Résultats de recherche</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -241,6 +241,13 @@ const Index = () => {
               </Link>
             ))}
           </div>
+        </div>
+      )}
+
+      {searchQuery && searchResults && searchResults.length === 0 && !isLoading && (
+        <div className="container mx-auto px-4 py-8 text-center">
+          <h2 className="text-2xl font-bold mb-4">Aucun résultat trouvé</h2>
+          <p className="text-gray-600">Essayez d'autres critères de recherche.</p>
         </div>
       )}
 

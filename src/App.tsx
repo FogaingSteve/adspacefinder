@@ -24,6 +24,7 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Navigate
 } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -32,7 +33,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 
 // Add these imports for admin routes
 import AdminLogin from "@/pages/admin/Login";
-import { AdminDashboard } from "@/pages/admin/Dashboard";
+import AdminDashboard from "@/pages/admin/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -63,11 +64,14 @@ function App() {
                 <Route path="/faq" element={<FAQ />} />
                 <Route path="/categories/:categoryId" element={<CategoryPage />} />
                 <Route path="/categories/:categoryId/:subcategoryId" element={<SubcategoryPage />} />
-                <Route path="/search" element={<MySearches />} />
+                <Route path="/search" element={<Index />} />
                 
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminLogin />} />
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                
+                {/* Redirection pour les routes inconnues */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>
             <Footer />

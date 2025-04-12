@@ -26,7 +26,8 @@ export const AdminLogin = () => {
         }
       }).then(() => {
         navigate('/admin/dashboard');
-      }).catch(() => {
+      }).catch((error) => {
+        console.error("Admin token verification failed:", error);
         // Token invalid, clear it
         localStorage.removeItem('adminToken');
       });
@@ -56,8 +57,11 @@ export const AdminLogin = () => {
       
       console.log("Admin login successful, redirecting to dashboard...");
       
-      // Force navigation to dashboard immediately
-      navigate('/admin/dashboard', { replace: true });
+      // Ajouter un délai pour s'assurer que le token est bien enregistré
+      setTimeout(() => {
+        // Forcer la navigation avec replace pour éviter les problèmes d'historique
+        window.location.href = '/admin/dashboard';
+      }, 500);
     } catch (error: any) {
       console.error("Error logging in:", error);
       toast.error(error.response?.data?.message || "Identifiants incorrects");

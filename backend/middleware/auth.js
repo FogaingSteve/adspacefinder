@@ -29,20 +29,25 @@ const auth = async (req, res, next) => {
     }
 
     // Vérifier le token Supabase
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    
-    if (error) {
-      console.error("Erreur Supabase:", error);
-      throw new Error('Token invalide');
-    }
+    try {
+      const { data, error } = await supabase.auth.getUser(token);
+      
+      if (error) {
+        console.error("Erreur Supabase:", error);
+        throw new Error('Token invalide');
+      }
 
-    if (!user) {
-      throw new Error('Utilisateur non trouvé');
-    }
+      if (!data.user) {
+        throw new Error('Utilisateur non trouvé');
+      }
 
-    req.userId = user.id;
-    console.log("Supabase Auth success, user ID:", user.id);
-    next();
+      req.userId = data.user.id;
+      console.log("Supabase Auth success, user ID:", data.user.id);
+      next();
+    } catch (supabaseError) {
+      console.error("Erreur Supabase:", supabaseError.message);
+      throw new Error('Token invalide ou expiré');
+    }
   } catch (error) {
     console.log("Erreur d'authentification:", error.message);
     res.status(401).json({ message: "Veuillez vous connecter" });
