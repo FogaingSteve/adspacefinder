@@ -20,6 +20,7 @@ const auth = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       if (decoded && decoded.userId) {
         req.userId = decoded.userId;
+        console.log("JWT Auth success, user ID:", decoded.userId);
         return next();
       }
     } catch (jwtError) {
@@ -40,9 +41,10 @@ const auth = async (req, res, next) => {
     }
 
     req.userId = user.id;
+    console.log("Supabase Auth success, user ID:", user.id);
     next();
   } catch (error) {
-    console.log("Erreur d'authentification:", error);
+    console.log("Erreur d'authentification:", error.message);
     res.status(401).json({ message: "Veuillez vous connecter" });
   }
 };
@@ -62,9 +64,10 @@ const adminAuth = (req, res, next) => {
     }
     
     req.adminId = decoded.id;
+    console.log("Admin auth success, ID:", decoded.id);
     next();
   } catch (error) {
-    console.log("Erreur d'authentification admin:", error);
+    console.log("Erreur d'authentification admin:", error.message);
     res.status(401).json({ message: "Accès administrateur refusé" });
   }
 };

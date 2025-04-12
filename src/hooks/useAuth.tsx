@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
@@ -80,44 +79,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Try Supabase auth first
+      // Try MongoDB auth first
+      try {
+        const response = await axios.post('http://localhost:5000/api/users/login', {
+          email,
+          password
+        });
+        
+        if (response.data && response.data.token) {
+          localStorage.setItem('token', response.data.token);
+          
+          // Create user object from MongoDB response
+          const mongoUser: User = {
+            id: response.data.user.id,
+            email: response.data.user.email,
+            user_metadata: {
+              name: response.data.user.name
+            }
+          };
+          
+          setUser(mongoUser);
+          localStorage.setItem('userSession', JSON.stringify(mongoUser));
+          
+          toast.success('Connexion réussie');
+          navigate('/dashboard');
+          return;
+        }
+      } catch (mongoError) {
+        console.error("MongoDB auth failed:", mongoError);
+        // Continue to Supabase auth if MongoDB fails
+      }
+      
+      // If MongoDB auth fails, try Supabase auth
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
       
-      if (error) {
-        // If Supabase fails, try MongoDB auth
-        try {
-          const response = await axios.post('http://localhost:5000/api/users/login', {
-            email,
-            password
-          });
-          
-          if (response.data && response.data.token) {
-            localStorage.setItem('token', response.data.token);
-            
-            // Create user object from MongoDB response
-            const mongoUser: User = {
-              id: response.data.user.id,
-              email: response.data.user.email,
-              user_metadata: {
-                name: response.data.user.name
-              }
-            };
-            
-            setUser(mongoUser);
-            localStorage.setItem('userSession', JSON.stringify(mongoUser));
-            
-            toast.success('Connexion réussie');
-            navigate('/dashboard');
-            return;
-          }
-        } catch (mongoError) {
-          console.error("MongoDB auth failed:", mongoError);
-          throw error; // Throw original Supabase error
-        }
-      }
+      if (error) throw error;
       
       toast.success('Connexion réussie');
       navigate('/dashboard');
@@ -128,36 +127,52 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string) => {
     try {
-      // Try Supabase signup first
-      const { error: supabaseError } = await supabase.auth.signUp({
+      // Try MongoDB signup first
+      try {
+        const response = await axios.post('http://localhost:5000/api/users/register', {
+          name: email.split('@')[0], // Basic name from email
+          email,
+          password
+        });
+        
+        if (response.data && response.data.token) {
+          localStorage.setItem('token', response.data.token);
+          
+          // Create user object from MongoDB response
+          const mongoUser: User = {
+            id: response.data.user.id,
+            email: response.data.user.email,
+            user_metadata: {
+              name: response.data.user.name
+            }
+          };
+          
+          setUser(mongoUser);
+          localStorage.setItem('userSession', JSON.stringify(mongoUser));
+          
+          toast.success('Compte créé avec succès.');
+          navigate('/dashboard');
+          return;
+        }
+      } catch (mongoError: any) {
+        console.error("MongoDB signup error:", mongoError);
+        
+        // If MongoDB fails with a duplicate user error, show a specific message
+        if (mongoError.response?.status === 400 && 
+            mongoError.response?.data?.message?.includes("existe déjà")) {
+          toast.error(mongoError.response.data.message);
+          return;
+        }
+        // Otherwise continue to try Supabase
+      }
+      
+      // If MongoDB signup fails, try Supabase signup
+      const { error } = await supabase.auth.signUp({
         email,
         password,
       });
       
-      if (supabaseError) {
-        console.error("Supabase signup error:", supabaseError);
-        
-        // Try MongoDB signup instead
-        try {
-          const response = await axios.post('http://localhost:5000/api/users/register', {
-            name: email.split('@')[0], // Basic name from email
-            email,
-            password
-          });
-          
-          if (response.data && response.data.token) {
-            toast.success('Compte créé avec succès. Vous pouvez maintenant vous connecter.');
-            navigate('/auth/signin');
-            return;
-          }
-        } catch (mongoError: any) {
-          console.error("MongoDB signup error:", mongoError);
-          toast.error(mongoError.response?.data?.message || "Erreur lors de l'inscription");
-          return;
-        }
-        
-        throw supabaseError;
-      }
+      if (error) throw error;
       
       toast.success('Compte créé avec succès. Veuillez vérifier votre email pour confirmer votre compte.');
       navigate('/auth/signin');

@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,25 @@ export const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check if already logged in as admin
+  useEffect(() => {
+    const adminToken = localStorage.getItem('adminToken');
+    if (adminToken) {
+      // Verify if token is valid
+      axios.get('http://localhost:5000/api/admin/verify', {
+        headers: {
+          Authorization: `Bearer ${adminToken}`
+        }
+      }).then(() => {
+        navigate('/admin/dashboard');
+      }).catch(() => {
+        // Token invalid, clear it
+        localStorage.removeItem('adminToken');
+      });
+    }
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +56,8 @@ export const AdminLogin = () => {
       
       console.log("Admin login successful, redirecting to dashboard...");
       
-      // Force navigation after a short delay to ensure state updates
-      setTimeout(() => {
-        navigate('/admin/dashboard');
-      }, 500);
+      // Force navigation to dashboard immediately
+      navigate('/admin/dashboard', { replace: true });
     } catch (error: any) {
       console.error("Error logging in:", error);
       toast.error(error.response?.data?.message || "Identifiants incorrects");

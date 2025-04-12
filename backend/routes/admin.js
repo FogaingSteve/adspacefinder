@@ -14,6 +14,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+// Verify admin token
+router.get('/verify', adminAuth, (req, res) => {
+  res.status(200).json({ valid: true, adminId: req.adminId });
+});
+
 // Login pour admin
 router.post('/login', async (req, res) => {
   try {
