@@ -168,7 +168,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       // Si l'inscription à MongoDB échoue, essayer l'inscription à Supabase
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -180,12 +180,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (error) throw error;
       
-      if (data.user) {
-        toast.success('Compte créé avec succès. Veuillez vérifier votre email pour confirmer votre compte.');
-        navigate('/auth/signin');
-      } else {
-        toast.error("Erreur lors de la création du compte");
-      }
+      toast.success('Compte créé avec succès. Veuillez vérifier votre email pour confirmer votre compte.');
+      navigate('/auth/signin');
+      
     } catch (error: any) {
       console.error('Erreur de signup:', error);
       toast.error(error.message || "Erreur lors de l'inscription");

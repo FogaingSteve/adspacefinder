@@ -11,9 +11,9 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export const RecentListings = () => {
-  const { data: listings, isLoading, refetch, error } = useRecentListings();
+  const { listings, isLoading, refetch, error } = useRecentListings();
   const { user } = useAuth();
-  const toggleFavorite = useToggleFavorite();
+  const { toggleFavorite, isLoading: isFavoriteLoading } = useToggleFavorite();
   const [processingFavorites, setProcessingFavorites] = useState<Record<string, boolean>>({});
 
   // Log error if there is one
@@ -43,11 +43,7 @@ export const RecentListings = () => {
     setProcessingFavorites(prev => ({ ...prev, [listingId]: true }));
     
     try {
-      await toggleFavorite.mutateAsync({
-        listingId,
-        userId: user.id
-      });
-      
+      await toggleFavorite(listingId);
       refetch(); // Rafraîchir pour mettre à jour l'état des favoris
       toast.success("Favori mis à jour");
     } catch (error) {

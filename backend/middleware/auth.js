@@ -63,14 +63,24 @@ const adminAuth = (req, res, next) => {
       throw new Error('Token administrateur manquant');
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded || !decoded.isAdmin) {
-      throw new Error('Accès administrateur non autorisé');
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
+      if (!decoded) {
+        throw new Error('Token invalide');
+      }
+      
+      if (!decoded.isAdmin) {
+        throw new Error('Accès administrateur non autorisé');
+      }
+      
+      req.adminId = decoded.id;
+      console.log("Admin auth success, ID:", decoded.id);
+      next();
+    } catch (error) {
+      console.log("Erreur de décodage du token admin:", error.message);
+      throw new Error('Token administrateur invalide ou expiré');
     }
-    
-    req.adminId = decoded.id;
-    console.log("Admin auth success, ID:", decoded.id);
-    next();
   } catch (error) {
     console.log("Erreur d'authentification admin:", error.message);
     res.status(401).json({ message: "Accès administrateur refusé" });

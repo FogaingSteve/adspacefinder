@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,6 @@ export const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Check if already logged in as admin
   useEffect(() => {
@@ -57,11 +56,8 @@ export const AdminLogin = () => {
       
       console.log("Admin login successful, redirecting to dashboard...");
       
-      // Ajouter un délai pour s'assurer que le token est bien enregistré
-      setTimeout(() => {
-        // Forcer la navigation avec replace pour éviter les problèmes d'historique
-        window.location.href = '/admin/dashboard';
-      }, 500);
+      // Navigate to dashboard
+      navigate('/admin/dashboard');
     } catch (error: any) {
       console.error("Error logging in:", error);
       toast.error(error.response?.data?.message || "Identifiants incorrects");

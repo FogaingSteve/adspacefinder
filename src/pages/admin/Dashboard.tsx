@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserManagement } from "@/components/admin/UserManagement";
@@ -15,7 +14,6 @@ import { Loader2 } from "lucide-react";
 import axios from "axios";
 
 export const AdminDashboard = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,35 +27,34 @@ export const AdminDashboard = () => {
         // Vérifier le token admin dans le localStorage
         const adminToken = localStorage.getItem('adminToken');
         
-        if (adminToken) {
-          try {
-            // Vérifier si le token admin est valide
-            const response = await axios.get('http://localhost:5000/api/admin/verify', {
-              headers: {
-                Authorization: `Bearer ${adminToken}`
-              }
-            });
-            
-            if (response.data.valid) {
-              console.log("Admin token valide");
-              setIsAdmin(true);
-              setIsLoading(false);
-              return;
-            }
-          } catch (tokenError) {
-            console.error("Erreur de vérification token admin:", tokenError);
-            localStorage.removeItem('adminToken');
-          }
+        if (!adminToken) {
+          console.log("Pas de token admin trouvé, redirection vers login");
+          navigate("/admin");
+          return;
         }
         
-        // Si pas de token admin valide, vérifier si l'utilisateur est admin via ses métadonnées
-        if (user?.user_metadata?.is_admin) {
-          console.log("Utilisateur est admin selon les métadonnées");
-          setIsAdmin(true);
-        } else {
-          console.log("Utilisateur n'est pas admin:", user);
+        try {
+          // Vérifier si le token admin est valide
+          const response = await axios.get('http://localhost:5000/api/admin/verify', {
+            headers: {
+              Authorization: `Bearer ${adminToken}`
+            }
+          });
+          
+          if (response.data.valid) {
+            console.log("Admin token valide");
+            setIsAdmin(true);
+          } else {
+            console.log("Token admin invalide");
+            localStorage.removeItem('adminToken');
+            navigate("/admin");
+            toast.error("Session expirée, veuillez vous reconnecter");
+          }
+        } catch (tokenError) {
+          console.error("Erreur de vérification token admin:", tokenError);
+          localStorage.removeItem('adminToken');
           navigate("/admin");
-          toast.error("Accès non autorisé");
+          toast.error("Session expirée, veuillez vous reconnecter");
         }
       } catch (error) {
         console.error("Erreur lors de la vérification des droits admin:", error);
@@ -69,7 +66,7 @@ export const AdminDashboard = () => {
     };
 
     checkAdmin();
-  }, [user, navigate]);
+  }, [navigate]);
 
   if (isLoading) {
     return (

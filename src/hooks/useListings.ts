@@ -184,7 +184,7 @@ export const useFavorites = (userId: string) => {
 
   useEffect(() => {
     fetchFavorites();
-  }, [fetchFavorites]);
+  }, [fetchListings]);
 
   return { listings: favorites, isLoading, error, refetch: fetchFavorites };
 };
@@ -197,7 +197,7 @@ export const useToggleFavorite = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const toggleFavorite = useCallback(async (listingId: string) => {
+  const toggleFavorite = async (listingId: string) => {
     if (!user?.id) {
       toast.error("Veuillez vous connecter pour ajouter des favoris");
       return;
@@ -214,7 +214,7 @@ export const useToggleFavorite = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  };
 
   return { toggleFavorite, isLoading, error };
 };
@@ -226,7 +226,7 @@ export const useCreateListing = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const createListing = useCallback(async (listingData: any) => {
+  const createListing = async (listingData: any) => {
     setIsLoading(true);
     try {
       const response = await listingService.createListing(listingData);
@@ -241,7 +241,7 @@ export const useCreateListing = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
   return { 
     mutateAsync: createListing, 
@@ -257,7 +257,7 @@ export const useDeleteListing = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const deleteListing = useCallback(async (listingId: string) => {
+  const deleteListing = async (listingId: string) => {
     setIsLoading(true);
     try {
       await listingService.deleteListing(listingId);
@@ -271,7 +271,7 @@ export const useDeleteListing = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
   return { 
     mutateAsync: deleteListing, 
@@ -287,10 +287,10 @@ export const useMarkListingAsSold = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const markAsSold = useCallback(async (listingId: string) => {
+  const markAsSold = async (listingId: string) => {
     setIsLoading(true);
     try {
-      await listingService.updateListing(listingId, { isSold: true });
+      await listingService.updateListing(listingId, { status: 'sold' });
       setError(null);
       toast.success("Statut de l'annonce mis à jour");
     } catch (err: any) {
@@ -301,7 +301,7 @@ export const useMarkListingAsSold = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
   return { 
     mutateAsync: markAsSold, 

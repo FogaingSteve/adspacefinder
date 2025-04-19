@@ -14,8 +14,8 @@ import { fr } from "date-fns/locale";
 
 const Favorites = () => {
   const { user } = useAuth();
-  const { data: favorites, isLoading, refetch } = useFavorites(user?.id || "");
-  const toggleFavorite = useToggleFavorite();
+  const { listings: favorites, isLoading, refetch } = useFavorites(user?.id || "");
+  const { toggleFavorite } = useToggleFavorite();
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const handleRemoveFavorite = async (listingId: string | undefined) => {
@@ -24,11 +24,7 @@ const Favorites = () => {
     setRemovingId(listingId);
     
     try {
-      await toggleFavorite.mutateAsync({
-        listingId,
-        userId: user.id
-      });
-      
+      await toggleFavorite(listingId);
       toast.success("Retiré des favoris");
       refetch(); // Rafraîchir la liste après la suppression
     } catch (error) {
@@ -98,60 +94,63 @@ const Favorites = () => {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {favorites.map((listing) => (
-              <Card key={listing.id || listing._id} className="overflow-hidden hover:shadow-md transition-shadow">
-                <div className="aspect-video relative">
-                  <img
-                    src={listing.images[0] || "https://via.placeholder.com/400x300?text=Pas+d'image"}
-                    alt={listing.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x300?text=Image+non+disponible";
-                    }}
-                  />
-                  {listing.isSold && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <div className="bg-red-500 text-white px-4 py-2 rounded-full font-semibold transform -rotate-12">
-                        Vendu
+            {favorites.map((listing) => {
+              const listingId = listing.id || listing._id;
+              return (
+                <Card key={listingId} className="overflow-hidden hover:shadow-md transition-shadow">
+                  <div className="aspect-video relative">
+                    <img
+                      src={listing.images[0] || "https://via.placeholder.com/400x300?text=Pas+d'image"}
+                      alt={listing.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x300?text=Image+non+disponible";
+                      }}
+                    />
+                    {listing.isSold && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <div className="bg-red-500 text-white px-4 py-2 rounded-full font-semibold transform -rotate-12">
+                          Vendu
+                        </div>
                       </div>
+                    )}
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="text-lg font-semibold line-clamp-1">{listing.title}</h3>
+                    <p className="text-primary font-bold mt-1">{listing.price} €</p>
+                    <div className="flex items-center text-gray-500 text-sm mt-2">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      <span>{listing.location}</span>
                     </div>
-                  )}
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold line-clamp-1">{listing.title}</h3>
-                  <p className="text-primary font-bold mt-1">{listing.price} €</p>
-                  <div className="flex items-center text-gray-500 text-sm mt-2">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    <span>{listing.location}</span>
-                  </div>
-                  <p className="text-gray-500 text-sm mt-1">
-                    {formatRelativeTime(listing.createdAt)}
-                  </p>
-                  <div className="flex justify-between items-center mt-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                    >
-                      <Link to={`/listings/${listing.id || listing._id}`}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Voir
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRemoveFavorite(listing.id || listing._id)}
-                      disabled={removingId === (listing.id || listing._id)}
-                      className="text-red-500 hover:text-red-600"
-                    >
-                      <Heart className="h-4 w-4 mr-2 fill-current" />
-                      {removingId === (listing.id || listing._id) ? "..." : "Retirer"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <p className="text-gray-500 text-sm mt-1">
+                      {formatRelativeTime(listing.createdAt)}
+                    </p>
+                    <div className="flex justify-between items-center mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                      >
+                        <Link to={`/listings/${listingId}`}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Voir
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRemoveFavorite(listingId)}
+                        disabled={removingId === listingId}
+                        className="text-red-500 hover:text-red-600"
+                      >
+                        <Heart className="h-4 w-4 mr-2 fill-current" />
+                        {removingId === listingId ? "..." : "Retirer"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>

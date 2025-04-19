@@ -65,6 +65,7 @@ function App() {
                 <Route path="/categories/:categoryId" element={<CategoryPage />} />
                 <Route path="/categories/:categoryId/:subcategoryId" element={<SubcategoryPage />} />
                 <Route path="/search" element={<Index />} />
+                <Route path="/my-searches" element={<MySearches />} />
                 
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminLogin />} />
