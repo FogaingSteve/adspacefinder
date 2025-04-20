@@ -24,6 +24,7 @@ export const AdminLogin = () => {
           Authorization: `Bearer ${adminToken}`
         }
       }).then(() => {
+        console.log("Admin token valid, redirecting to dashboard");
         navigate('/admin/dashboard');
       }).catch((error) => {
         console.error("Admin token verification failed:", error);
@@ -49,6 +50,8 @@ export const AdminLogin = () => {
         email,
         password
       });
+      
+      console.log("Admin login response:", response.data);
       
       // Store the token in localStorage
       localStorage.setItem('adminToken', response.data.token);

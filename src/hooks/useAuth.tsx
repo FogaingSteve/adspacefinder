@@ -128,8 +128,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string) => {
     try {
+      console.log("Starting signup process with email:", email);
+      
       // Essayer d'abord l'inscription avec MongoDB
       try {
+        console.log("Attempting MongoDB signup");
         const response = await axios.post('http://localhost:5000/api/users/register', {
           name: email.split('@')[0], // Nom de base à partir de l'email
           email,
@@ -168,7 +171,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       // Si l'inscription à MongoDB échoue, essayer l'inscription à Supabase
-      const { error } = await supabase.auth.signUp({
+      console.log("Attempting Supabase signup");
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -178,10 +182,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       });
       
+      console.log("Supabase signup response:", data, error);
+      
       if (error) throw error;
       
-      toast.success('Compte créé avec succès. Veuillez vérifier votre email pour confirmer votre compte.');
-      navigate('/auth/signin');
+      if (data.user) {
+        toast.success('Compte créé avec succès. Vous pouvez maintenant vous connecter.');
+        navigate('/auth/signin');
+      } else {
+        toast.success('Compte créé avec succès. Veuillez vérifier votre email pour confirmer votre compte.');
+      }
       
     } catch (error: any) {
       console.error('Erreur de signup:', error);
@@ -211,6 +221,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Also clear MongoDB token if exists
       localStorage.removeItem('token');
       localStorage.removeItem('userSession')
+      localStorage.removeItem('adminToken'); // Also clear admin token if exists
       
       toast.success('Déconnexion réussie')
       navigate('/')

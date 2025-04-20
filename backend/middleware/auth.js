@@ -57,32 +57,37 @@ const auth = async (req, res, next) => {
 // Middleware pour vérifier JWT token pour l'admin
 const adminAuth = (req, res, next) => {
   try {
+    console.log("Verifying admin token");
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
+      console.log("Admin token missing");
       throw new Error('Token administrateur manquant');
     }
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("Admin token decoded:", decoded);
       
       if (!decoded) {
+        console.log("Admin token invalid");
         throw new Error('Token invalide');
       }
       
       if (!decoded.isAdmin) {
+        console.log("Not an admin user:", decoded);
         throw new Error('Accès administrateur non autorisé');
       }
       
-      req.adminId = decoded.id;
-      console.log("Admin auth success, ID:", decoded.id);
+      req.adminId = decoded.userId;
+      console.log("Admin auth success, ID:", decoded.userId);
       next();
     } catch (error) {
-      console.log("Erreur de décodage du token admin:", error.message);
+      console.log("Error decoding admin token:", error.message);
       throw new Error('Token administrateur invalide ou expiré');
     }
   } catch (error) {
-    console.log("Erreur d'authentification admin:", error.message);
+    console.log("Admin authentication error:", error.message);
     res.status(401).json({ message: "Accès administrateur refusé" });
   }
 };

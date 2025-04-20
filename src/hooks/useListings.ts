@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { listingService } from '@/services/api';
 import { Listing } from '@/types/listing';
 import { toast } from 'sonner';
-import axios from 'axios';
 import { useAuth } from './useAuth';
 
 /**
@@ -184,7 +183,7 @@ export const useFavorites = (userId: string) => {
 
   useEffect(() => {
     fetchFavorites();
-  }, [fetchListings]);
+  }, [fetchFavorites]);
 
   return { listings: favorites, isLoading, error, refetch: fetchFavorites };
 };
@@ -244,7 +243,7 @@ export const useCreateListing = () => {
   };
 
   return { 
-    mutateAsync: createListing, 
+    mutateAsync: createListing,
     isPending: isLoading, 
     error 
   };
@@ -290,7 +289,7 @@ export const useMarkListingAsSold = () => {
   const markAsSold = async (listingId: string) => {
     setIsLoading(true);
     try {
-      await listingService.updateListing(listingId, { status: 'sold' });
+      await listingService.updateListing(listingId, { isSold: true });
       setError(null);
       toast.success("Statut de l'annonce mis à jour");
     } catch (err: any) {
