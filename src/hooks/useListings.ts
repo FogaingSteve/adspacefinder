@@ -245,7 +245,9 @@ export const useCreateListing = () => {
   return { 
     mutateAsync: createListing,
     isPending: isLoading, 
-    error 
+    error,
+    // Add for compatibility with components using mutate
+    mutate: createListing
   };
 };
 
@@ -289,7 +291,7 @@ export const useMarkListingAsSold = () => {
   const markAsSold = async (listingId: string) => {
     setIsLoading(true);
     try {
-      await listingService.updateListing(listingId, { isSold: true });
+      await listingService.updateListing(listingId, { status: 'sold' });
       setError(null);
       toast.success("Statut de l'annonce mis à jour");
     } catch (err: any) {

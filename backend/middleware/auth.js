@@ -2,6 +2,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const jwt = require('jsonwebtoken');
 
+// Create Supabase client with environment variables
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
@@ -28,12 +29,12 @@ const auth = async (req, res, next) => {
       // Continue to Supabase validation if JWT fails
     }
 
-    // Vérifier le token Supabase
+    // Verify Supabase token
     try {
       const { data, error } = await supabase.auth.getUser(token);
       
       if (error) {
-        console.error("Erreur Supabase:", error);
+        console.error("Supabase Auth Error:", error);
         throw new Error('Token invalide');
       }
 
@@ -45,11 +46,11 @@ const auth = async (req, res, next) => {
       console.log("Supabase Auth success, user ID:", data.user.id);
       next();
     } catch (supabaseError) {
-      console.error("Erreur Supabase:", supabaseError.message);
+      console.error("Supabase Error Details:", supabaseError);
       throw new Error('Token invalide ou expiré');
     }
   } catch (error) {
-    console.log("Erreur d'authentification:", error.message);
+    console.log("Authentication Error:", error.message);
     res.status(401).json({ message: "Veuillez vous connecter" });
   }
 };

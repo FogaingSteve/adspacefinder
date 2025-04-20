@@ -130,11 +130,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log("Starting signup process with email:", email);
       
-      // Essayer d'abord l'inscription avec MongoDB
+      // Try MongoDB signup first
       try {
         console.log("Attempting MongoDB signup");
         const response = await axios.post('http://localhost:5000/api/users/register', {
-          name: email.split('@')[0], // Nom de base à partir de l'email
+          name: email.split('@')[0], // Basic name from email
           email,
           password
         });
@@ -142,7 +142,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (response.data && response.data.token) {
           localStorage.setItem('token', response.data.token);
           
-          // Créer l'objet utilisateur à partir de la réponse MongoDB
+          // Create user object from MongoDB response
           const mongoUser: User = {
             id: response.data.user.id,
             email: response.data.user.email,
@@ -161,17 +161,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } catch (mongoError: any) {
         console.error("MongoDB signup error:", mongoError);
         
-        // Si MongoDB échoue avec une erreur d'utilisateur en double, afficher un message spécifique
+        // If MongoDB fails with duplicate user error, show specific message
         if (mongoError.response?.status === 400 && 
             mongoError.response?.data?.message?.includes("existe déjà")) {
           toast.error(mongoError.response.data.message);
           return;
         }
-        // Sinon continuer pour essayer Supabase
+        // Continue to try Supabase
       }
       
-      // Si l'inscription à MongoDB échoue, essayer l'inscription à Supabase
+      // If MongoDB signup fails, try Supabase signup
       console.log("Attempting Supabase signup");
+      
+      // First check if user_with_email table exists and if the email already exists
+      try {
+        const { data: existingUsers, error: queryError } = await supabase
+          .from('user_with_email')
+          .select('email')
+          .eq('email', email);
+        
+        if (!queryError && existingUsers && existingUsers.length > 0) {
+          toast.error("Un utilisateur avec cet email existe déjà dans la base de données.");
+          return;
+        }
+      } catch (tableError) {
+        console.log("Table user_with_email might not exist or is not accessible:", tableError);
+        // Continue with signup even if table check fails
+      }
+      
+      // Proceed with Supabase signup
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -184,9 +202,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log("Supabase signup response:", data, error);
       
-      if (error) throw error;
+      if (error) {
+        // If there's an error with "User already registered", handle this case
+        if (error.message.includes("already registered")) {
+          toast.error("Un utilisateur avec cet email existe déjà.");
+          return;
+        }
+        throw error;
+      }
       
+      // If signup successful, try to create entry in user_with_email table
       if (data.user) {
+        try {
+          const { error: insertError } = await supabase
+            .from('user_with_email')
+            .insert([{ 
+              id: data.user.id,
+              email: email,
+              created_at: new Date().toISOString()
+            }]);
+            
+          if (insertError) {
+            console.error("Error inserting into user_with_email:", insertError);
+            // Don't throw error here, just log it - the signup already succeeded
+          }
+        } catch (tableError) {
+          console.error("Error with user_with_email table:", tableError);
+          // Continue as the auth signup has already succeeded
+        }
+        
         toast.success('Compte créé avec succès. Vous pouvez maintenant vous connecter.');
         navigate('/auth/signin');
       } else {

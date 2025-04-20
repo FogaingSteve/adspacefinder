@@ -23,8 +23,8 @@ export const AdminLogin = () => {
         headers: {
           Authorization: `Bearer ${adminToken}`
         }
-      }).then(() => {
-        console.log("Admin token valid, redirecting to dashboard");
+      }).then((response) => {
+        console.log("Admin token valid, redirecting to dashboard:", response.data);
         navigate('/admin/dashboard');
       }).catch((error) => {
         console.error("Admin token verification failed:", error);
